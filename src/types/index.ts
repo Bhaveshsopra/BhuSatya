@@ -94,6 +94,7 @@ export interface Parcel {
     storagePath?: string;
     isDurableStorage?: boolean;
     sha256?: string;
+    classification?: DocumentClassificationResult;
   };
   gates: GateCheck[];
   override?: {
@@ -108,6 +109,63 @@ export interface Parcel {
   hearingDate?: string;
 }
 
+export type LandDocumentType =
+  | 'SATBARA_7_12'
+  | 'FORM_8A'
+  | 'PROPERTY_CARD'
+  | 'FERFAR_MUTATION'
+  | 'SALE_DEED'
+  | 'OTHER_OFFICIAL_LAND_RECORD'
+  | 'UNKNOWN';
+
+export type DocumentValidationStatus =
+  | 'ACCEPTED_LAND_DOCUMENT'
+  | 'REJECTED_NOT_LAND_DOCUMENT'
+  | 'NEEDS_MANUAL_REVIEW'
+  | 'DOCUMENT_VALIDATION_UNAVAILABLE';
+
+export interface ExtractedLandFields {
+  ownerName: string | null;
+  surveyNo: string | null;
+  gatNo: string | null;
+  subDivision: string | null;
+  village: string | null;
+  taluka: string | null;
+  district: string | null;
+  state: string | null;
+  area: string | null;
+  areaHa: number | null;
+  areaAcres: number | null;
+  docDate: string | null;
+  docRef: string | null;
+  ulpin: string | null;
+  encumbrances: string | null;
+  classification: string | null;
+}
+
+export interface DocumentClassificationResult {
+  status: DocumentValidationStatus;
+  isSupportedLandDocument: boolean;
+  documentType: LandDocumentType;
+  documentTypeDescription: string;
+  classificationConfidence: number;
+  language: 'English' | 'Marathi' | 'Hindi' | 'Mixed' | 'Unknown';
+  imageQuality: 'readable' | 'partially_readable' | 'unreadable';
+  visibleEvidence: string[];
+  ocrText: string;
+  extractedFields: ExtractedLandFields;
+  reasons: string[];
+  requiresManualReview: boolean;
+  sha256?: string;
+  verifiedAt: string;
+  stageResults?: {
+    stageA_fileValidation: { passed: boolean; message: string; mimeTypeDetected?: string };
+    stageB_classification: { passed: boolean; detectedType: LandDocumentType; confidence: number };
+    stageC_ocrEvidence: { passed: boolean; matchedKeywordsCount: number; matchedKeywords: string[] };
+    stageD_decision: { status: DocumentValidationStatus; decisionNotes: string };
+  };
+}
+
 export interface ExtractionData {
   docRef: string;
   parcelId: string;
@@ -117,13 +175,14 @@ export interface ExtractionData {
   village: string;
   taluka: string;
   district: string;
+  classification?: DocumentClassificationResult;
   fields: {
-    primaryOwner: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    surveyNumber: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    subDivision: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    totalArea: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    shareFraction: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean };
-    encumbrances: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean };
+    primaryOwner: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    surveyNumber: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    subDivision: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    totalArea: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    shareFraction: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    encumbrances: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
   };
 }
 

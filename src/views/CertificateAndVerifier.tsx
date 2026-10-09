@@ -18,6 +18,10 @@ interface StoredCertificate {
   certHash: string;
   status: 'ISSUED' | 'REVOKED';
   eligibilityNotes: string;
+  sha256Verified?: boolean;
+  recalculatedHash?: string;
+  isDemonstrationCertificate?: boolean;
+  disclaimer?: string;
 }
 
 interface CertificateAndVerifierProps {
@@ -300,13 +304,13 @@ export const CertificateAndVerifier: React.FC<CertificateAndVerifierProps> = ({
                     />
                   </div>
                   <h3 className="text-base font-bold text-[#131b2e] tracking-wide uppercase">
-                    GOVERNMENT OF INDIA • DEPARTMENT OF LAND RESOURCES
+                    BHUSATYA LAND REGISTRY INTEGRITY STACK • DEMONSTRATION SANDBOX
                   </h3>
                   <p className="text-xs text-[#717970] uppercase tracking-wider font-semibold">
-                    BHUSATYA NATIONAL CADASTRAL REPOSITORY & REGISTRY INTEGRITY STACK
+                    INTERNAL DEMONSTRATION TITLE CERTIFICATE (अंतर्गत प्रात्यक्षिक भू-प्रमाण पत्र)
                   </p>
-                  <div className="inline-block px-4 py-1 bg-[#eaedff] rounded-full border border-[#c0c9be]/40 text-xs font-bold text-[#003b1b]">
-                    AUTHENTICATED LAND TITLE AUDIT CERTIFICATE (भू-प्रमाण पत्र)
+                  <div className="inline-block px-4 py-1 bg-[#ffdcc3] rounded-full border border-amber-300 text-xs font-bold text-[#703a00]">
+                    SANDBOX PROTOTYPE — NOT A GOVERNMENT-ISSUED LEGAL DEED
                   </div>
                 </div>
 
@@ -439,18 +443,36 @@ export const CertificateAndVerifier: React.FC<CertificateAndVerifierProps> = ({
           </div>
 
           {verifySearched && verifyResult ? (
-            <div className="p-4 bg-[#92f5a4]/20 rounded-xl border border-[#006d30]/30 space-y-2 text-xs animate-in fade-in">
-              <div className="flex items-center gap-1.5 text-[#007233] font-bold text-sm">
-                <span className="material-symbols-outlined text-lg">verified</span>
-                <span>AUTHENTIC RECORD CONFIRMED ON SOVEREIGN REPOSITORY</span>
+            <div className="p-4 bg-[#92f5a4]/20 rounded-xl border border-[#006d30]/30 space-y-3 text-xs animate-in fade-in">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 text-[#007233] font-bold text-sm">
+                  <span className="material-symbols-outlined text-lg">verified</span>
+                  <span>RECORD CONFIRMED ON BHUSATYA REPOSITORY</span>
+                </div>
+                {verifyResult.sha256Verified && (
+                  <span className="px-2 py-0.5 rounded-full bg-[#92f5a4] text-[#007233] font-bold text-[10px] uppercase border border-[#006d30]/30 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">lock</span>
+                    SHA-256 Canonical Hash Verified
+                  </span>
+                )}
               </div>
+
               <div className="space-y-1.5 pt-1 text-[#131b2e]">
                 <div><span className="text-[#717970]">Certificate Reference:</span> <strong className="font-mono text-[#003b1b]">{verifyResult.certId}</strong></div>
                 <div><span className="text-[#717970]">Survey & Extent:</span> <strong>{verifyResult.surveyNo}</strong> ({verifyResult.areaHa} Ha in {verifyResult.village}, {verifyResult.taluka})</div>
                 <div><span className="text-[#717970]">Registered Khatedar:</span> <strong>{verifyResult.issuedTo}</strong></div>
                 <div><span className="text-[#717970]">Status & Validity:</span> <strong className="text-[#007233]">{verifyResult.status} (Valid until {verifyResult.validUntil})</strong></div>
-                <div><span className="text-[#717970]">Ledger Hash:</span> <code className="font-mono text-[11px] bg-white px-1 py-0.5 rounded border border-[#c0c9be]/40">{verifyResult.certHash}</code></div>
+                <div>
+                  <span className="text-[#717970]">Canonical Ledger Hash:</span>
+                  <code className="font-mono text-[11px] bg-white px-1.5 py-0.5 rounded border border-[#c0c9be]/40 block mt-0.5 break-all">
+                    {verifyResult.certHash}
+                  </code>
+                </div>
                 <div><span className="text-[#717970]">Issuing Officer:</span> {verifyResult.issuerName} ({verifyResult.issuerRole})</div>
+              </div>
+
+              <div className="pt-2 border-t border-[#006d30]/20 text-[11px] text-[#404941]">
+                <strong className="text-[#003b1b]">Legal Notice:</strong> {verifyResult.disclaimer || 'Internal demonstration certificate for workflow evaluation. Not a government-issued title deed.'}
               </div>
             </div>
           ) : verifySearched && !verifyResult ? (

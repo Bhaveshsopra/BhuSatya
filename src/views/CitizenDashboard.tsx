@@ -141,7 +141,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           onNavigateTab('extract-and-review', res.data.id);
         }, 1200);
       } else {
-        setErrorMessage(res.error || 'Upload failed.');
+        const reasonText = res.reasons && res.reasons.length > 0 ? ` Reason: ${res.reasons.join('; ')}` : '';
+        setErrorMessage(`${res.error || 'Upload failed.'}${reasonText}`);
       }
     } catch (err) {
       console.error(err);

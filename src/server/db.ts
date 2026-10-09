@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { DocumentClassificationResult } from '../types/index.ts';
 
 const DB_PATH = path.resolve(process.cwd(), 'data', 'bhusatya_db.json');
 
@@ -88,6 +89,7 @@ export interface Parcel {
     storagePath?: string;
     isDurableStorage?: boolean;
     sha256?: string;
+    classification?: DocumentClassificationResult;
   };
   gates: GateCheck[];
   override?: {
@@ -111,13 +113,14 @@ export interface ExtractionData {
   village: string;
   taluka: string;
   district: string;
+  classification?: DocumentClassificationResult;
   fields: {
-    primaryOwner: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    surveyNumber: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    subDivision: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    totalArea: { value: string; marathi: string; confidence: number; status: string; notes: string };
-    shareFraction: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean };
-    encumbrances: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean };
+    primaryOwner: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    surveyNumber: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    subDivision: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    totalArea: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    shareFraction: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    encumbrances: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
   };
 }
 

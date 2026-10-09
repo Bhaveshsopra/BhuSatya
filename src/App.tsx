@@ -99,6 +99,7 @@ export default function App() {
   const handleNewParcelUploaded = (newParcel: Parcel) => {
     setParcels((prev) => [newParcel, ...prev]);
     setSelectedParcelId(newParcel.id);
+    refreshQueue();
   };
 
   const currentParcel = parcels.find((p) => p.id === selectedParcelId) || parcels[0] || ({} as Parcel);

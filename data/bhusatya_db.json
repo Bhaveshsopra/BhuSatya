@@ -1,6 +1,405 @@
 {
   "parcels": [
     {
+      "id": "p-152349",
+      "caseNo": "CASE-2026-MH-15173",
+      "surveyNo": "Survey No. 99/2B",
+      "gatNo": "Gat No. Unspecified",
+      "ulpin": "27-24-0012-0451-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 1.25,
+      "areaAcres": 3.09,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Kavita Deshmukh",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Classified: UNKNOWN",
+        "Requires Officer Scrutiny"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 15000000,
+      "askingPrice": 15625000,
+      "stampDuty": 1093750,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "satbara_extract_712.pdf",
+        "serverFileName": "bhu_doc_1791537150853_d9e6b97c823b.pdf",
+        "storagePath": "uploads/documents/bhu_doc_1791537150853_d9e6b97c823b.pdf",
+        "fileSize": "0.0 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "10/9/2026, 9:12:32 AM",
+        "source": "Direct File Upload & Stored on Server",
+        "isDurableStorage": true,
+        "classification": {
+          "status": "DOCUMENT_VALIDATION_UNAVAILABLE",
+          "isSupportedLandDocument": false,
+          "documentType": "UNKNOWN",
+          "documentTypeDescription": "Unsupported / Non-Land Document",
+          "classificationConfidence": 0,
+          "language": "Unknown",
+          "imageQuality": "unreadable",
+          "visibleEvidence": [],
+          "ocrText": "",
+          "extractedFields": {
+            "ownerName": null,
+            "surveyNo": null,
+            "gatNo": null,
+            "subDivision": null,
+            "village": null,
+            "taluka": null,
+            "district": null,
+            "state": null,
+            "area": null,
+            "areaHa": null,
+            "areaAcres": null,
+            "docDate": null,
+            "docRef": null,
+            "ulpin": null,
+            "encumbrances": null,
+            "classification": null
+          },
+          "reasons": [
+            "AI Document Validation API call failed: {\"error\":{\"code\":400,\"message\":\"Request contains an invalid argument.\",\"status\":\"INVALID_ARGUMENT\"}}"
+          ],
+          "requiresManualReview": true,
+          "sha256": "302b42ec1f5c9c15fb556fd9c9c3cf7fae049299409ed680e82047e73db6bfbe",
+          "verifiedAt": "2026-10-09T09:12:30.856Z",
+          "stageResults": {
+            "stageA_fileValidation": {
+              "passed": true,
+              "message": "Valid file signature.",
+              "mimeTypeDetected": "application/pdf"
+            },
+            "stageB_classification": {
+              "passed": false,
+              "detectedType": "UNKNOWN",
+              "confidence": 0
+            },
+            "stageC_ocrEvidence": {
+              "passed": false,
+              "matchedKeywordsCount": 0,
+              "matchedKeywords": []
+            },
+            "stageD_decision": {
+              "status": "DOCUMENT_VALIDATION_UNAVAILABLE",
+              "decisionNotes": "AI service error: {\"error\":{\"code\":400,\"message\":\"Request contains an invalid argument.\",\"status\":\"INVALID_ARGUMENT\"}}"
+            }
+          }
+        }
+      },
+      "override": null,
+      "score": 85,
+      "diligenceScore": 100,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries.",
+          "sourceSystem": "State Land Records Mutation Register (Ferfar)",
+          "isSimulated": true
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI.",
+          "sourceSystem": "CERSAI Central Registry (Demonstration Data - Gateway Not Live)",
+          "isSimulated": true
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "PASS",
+          "desc": "Zero civil suits, caveats, or injunction orders found in District e-Courts register.",
+          "sourceSystem": "e-Courts NJDG (Demonstration Sandbox Data)",
+          "isSimulated": true
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "PASS",
+          "desc": "Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.",
+          "sourceSystem": "State Cadastral Classification Ledger (Mahabhulekh)",
+          "isSimulated": true
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.",
+          "sourceSystem": "Cadastral GIS Tippani / DGPS Polygon Service",
+          "isSimulated": true
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (1.25 Ha).",
+          "sourceSystem": "TILR Cadastral Area Reconciler",
+          "isSimulated": true
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office.",
+          "sourceSystem": "IGR Maharashtra Electronic Registry (e-Stepin)",
+          "isSimulated": true
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified.",
+          "sourceSystem": "BhuSatya Digital Coparcener Consent Ledger",
+          "isSimulated": true
+        }
+      ],
+      "recommendation": "Pass",
+      "recommendationExplanation": "Officer Override Sanctioned by Divisional Commissioner.",
+      "status": "PASS - Officer Override Sanctioned",
+      "registrationStatus": "PENDING OFFICER REVIEW",
+      "caseStatus": "OFFICER_SANCTIONED",
+      "officerRemarks": "Sanctioned under Sec 34 MLRC following scrutiny of title deed."
+    },
+    {
+      "id": "p-506934",
+      "caseNo": "CASE-2026-MH-16675",
+      "surveyNo": "Survey No. 103/3",
+      "gatNo": "Gat No. 186",
+      "ulpin": "27-24-0012-0749-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 1.35,
+      "areaAcres": 3.34,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Ananya Sharma",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Zero Litigation",
+        "No Mortgage Dues",
+        "Verified via Citizen Portal"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 16200000,
+      "askingPrice": 16875000,
+      "stampDuty": 1181250,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "Image 7.png",
+        "serverFileName": "bhu_doc_1791535506916_2e13514f0d2c.png",
+        "storagePath": "uploads/documents/bhu_doc_1791535506916_2e13514f0d2c.png",
+        "fileSize": "0.7 MB",
+        "fileType": "image/png",
+        "uploadedAt": "10/9/2026, 8:45:06 AM",
+        "source": "Direct File Upload & Stored on Server",
+        "isDurableStorage": true
+      },
+      "override": null,
+      "score": 100,
+      "diligenceScore": 100,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries.",
+          "sourceSystem": "State Land Records Mutation Register (Ferfar)",
+          "isSimulated": true
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI.",
+          "sourceSystem": "CERSAI Central Registry (Demonstration Data - Gateway Not Live)",
+          "isSimulated": true
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "PASS",
+          "desc": "Zero civil suits, caveats, or injunction orders found in District e-Courts register.",
+          "sourceSystem": "e-Courts NJDG (Demonstration Sandbox Data)",
+          "isSimulated": true
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "PASS",
+          "desc": "Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.",
+          "sourceSystem": "State Cadastral Classification Ledger (Mahabhulekh)",
+          "isSimulated": true
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.",
+          "sourceSystem": "Cadastral GIS Tippani / DGPS Polygon Service",
+          "isSimulated": true
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (1.35 Ha).",
+          "sourceSystem": "TILR Cadastral Area Reconciler",
+          "isSimulated": true
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office.",
+          "sourceSystem": "IGR Maharashtra Electronic Registry (e-Stepin)",
+          "isSimulated": true
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified.",
+          "sourceSystem": "BhuSatya Digital Coparcener Consent Ledger",
+          "isSimulated": true
+        }
+      ],
+      "recommendation": "Pass",
+      "recommendationExplanation": "All title diligence checks completed satisfactorily.",
+      "status": "PASS - Clear Title",
+      "registrationStatus": "TITLE VERIFIED",
+      "caseStatus": "TITLE_VERIFIED"
+    },
+    {
+      "id": "p-296883",
+      "caseNo": "CASE-2026-MH-81782",
+      "surveyNo": "Survey No. 176/4",
+      "gatNo": "Gat No. 519",
+      "ulpin": "27-24-0012-0200-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 1.35,
+      "areaAcres": 3.34,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Ananya Sharma",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Zero Litigation",
+        "No Mortgage Dues",
+        "Verified via Citizen Portal"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 16200000,
+      "askingPrice": 16875000,
+      "stampDuty": 1181250,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "Image 3.png",
+        "fileSize": "0.8 MB",
+        "fileType": "image/png",
+        "uploadedAt": "10/9/2026, 8:41:36 AM",
+        "source": "Citizen Upload & OCR",
+        "isDurableStorage": false
+      },
+      "override": null,
+      "score": 100,
+      "diligenceScore": 100,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries.",
+          "sourceSystem": "State Land Records Mutation Register (Ferfar)",
+          "isSimulated": true
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI.",
+          "sourceSystem": "CERSAI Central Registry (Demonstration Data - Gateway Not Live)",
+          "isSimulated": true
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "PASS",
+          "desc": "Zero civil suits, caveats, or injunction orders found in District e-Courts register.",
+          "sourceSystem": "e-Courts NJDG (Demonstration Sandbox Data)",
+          "isSimulated": true
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "PASS",
+          "desc": "Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.",
+          "sourceSystem": "State Cadastral Classification Ledger (Mahabhulekh)",
+          "isSimulated": true
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.",
+          "sourceSystem": "Cadastral GIS Tippani / DGPS Polygon Service",
+          "isSimulated": true
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (1.35 Ha).",
+          "sourceSystem": "TILR Cadastral Area Reconciler",
+          "isSimulated": true
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office.",
+          "sourceSystem": "IGR Maharashtra Electronic Registry (e-Stepin)",
+          "isSimulated": true
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified.",
+          "sourceSystem": "BhuSatya Digital Coparcener Consent Ledger",
+          "isSimulated": true
+        }
+      ],
+      "recommendation": "Pass",
+      "recommendationExplanation": "All title diligence checks completed satisfactorily.",
+      "status": "PASS - Clear Title",
+      "registrationStatus": "TITLE VERIFIED",
+      "caseStatus": "TITLE_VERIFIED"
+    },
+    {
       "id": "p-255516",
       "caseNo": "CASE-2026-MH-34262",
       "surveyNo": "Survey No. 99/2",
@@ -111,7 +510,7 @@
       "recommendationExplanation": "All title diligence checks completed satisfactorily.",
       "status": "PASS - Clear Title",
       "registrationStatus": "TITLE VERIFIED",
-      "caseStatus": "TITLE_VERIFIED"
+      "caseStatus": "NEEDS_OFFICER_REVIEW"
     },
     {
       "id": "p-980681",
@@ -416,8 +815,8 @@
       "classification": "Agricultural / Semi-Urban",
       "primaryOwner": "Dattatray Anant Sharma & Legal Heirs",
       "jointShareInfo": "Coparcenary Family Land",
-      "score": 91,
-      "diligenceScore": 91,
+      "score": 100,
+      "diligenceScore": 100,
       "status": "PASS - Clear Title (All Heirs Consented)",
       "registrationStatus": "CONSENT COMPLETE",
       "caseStatus": "PENDING_REVIEW",
@@ -595,9 +994,9 @@
     }
   ],
   "extraction": {
-    "docRef": "712-MAH-MUL-55518",
-    "parcelId": "p-255516",
-    "source": "Citizen Upload",
+    "docRef": "712-MAH-MUL-52363",
+    "parcelId": "p-152349",
+    "source": "Direct File Upload & Stored on Server",
     "engine": "Indic-BERT v4.3 + Google Vision Transformer",
     "quality": "98.1% High Confidence",
     "village": "Mouje Hinjawadi",
@@ -605,46 +1004,108 @@
     "district": "Pune",
     "fields": {
       "primaryOwner": {
-        "value": "Ramesh Kulkarni",
-        "marathi": "Ramesh Kulkarni",
-        "confidence": 96,
-        "status": "High Confidence",
-        "notes": "Extracted from uploaded 7/12 (Demonstration OCR Pipeline)."
+        "value": "Kavita Deshmukh",
+        "marathi": "Kavita Deshmukh",
+        "confidence": 0,
+        "status": "Unverified",
+        "notes": "Provided in citizen submission docket.",
+        "provenance": "UNVERIFIED"
       },
       "surveyNumber": {
-        "value": "99/2",
-        "marathi": "Survey No. 99/2",
-        "confidence": 99,
-        "status": "Exact Match",
-        "notes": "Cross-referenced against village cadastral sheet."
+        "value": "99/2B",
+        "marathi": "Survey No. 99/2B",
+        "confidence": 0,
+        "status": "Unverified",
+        "notes": "Pending document boundary reconciliation.",
+        "provenance": "UNVERIFIED"
       },
       "subDivision": {
         "value": "Sub-division 1 (Hissa No. 1)",
         "marathi": "पोट हिस्सा १",
-        "confidence": 92,
+        "confidence": 90,
         "status": "Verified",
-        "notes": "Sub-division demarcation confirmed."
+        "notes": "Sub-division demarcation confirmed.",
+        "provenance": "UNVERIFIED"
       },
       "totalArea": {
-        "value": "1.85 Ha (4.57 Acres)",
-        "marathi": "1.85 हेक्टर",
-        "confidence": 95,
-        "status": "High Confidence",
-        "notes": "Area reconciled against revenue records."
+        "value": "1.25 Ha (3.09 Acres)",
+        "marathi": "1.25 हेक्टर",
+        "confidence": 92,
+        "status": "Unverified",
+        "notes": "Area reconciled against revenue records.",
+        "provenance": "UNVERIFIED"
       },
       "shareFraction": {
         "value": "Sole Occupancy (1/1 Full Share)",
         "marathi": "१/१ पूर्ण हिस्सा",
-        "confidence": 95,
+        "confidence": 90,
         "status": "Verified",
-        "notes": "Single owner record verified."
+        "notes": "Single owner record verified.",
+        "provenance": "UNVERIFIED"
       },
       "encumbrances": {
         "value": "Nil (All bank charges satisfied on CERSAI)",
         "marathi": "कोणताही बोजा नाही",
         "confidence": 90,
         "status": "Verified",
-        "notes": "CERSAI search results reconciled."
+        "notes": "CERSAI search results reconciled.",
+        "provenance": "UNVERIFIED"
+      }
+    },
+    "classification": {
+      "status": "DOCUMENT_VALIDATION_UNAVAILABLE",
+      "isSupportedLandDocument": false,
+      "documentType": "UNKNOWN",
+      "documentTypeDescription": "Unsupported / Non-Land Document",
+      "classificationConfidence": 0,
+      "language": "Unknown",
+      "imageQuality": "unreadable",
+      "visibleEvidence": [],
+      "ocrText": "",
+      "extractedFields": {
+        "ownerName": null,
+        "surveyNo": null,
+        "gatNo": null,
+        "subDivision": null,
+        "village": null,
+        "taluka": null,
+        "district": null,
+        "state": null,
+        "area": null,
+        "areaHa": null,
+        "areaAcres": null,
+        "docDate": null,
+        "docRef": null,
+        "ulpin": null,
+        "encumbrances": null,
+        "classification": null
+      },
+      "reasons": [
+        "AI Document Validation API call failed: {\"error\":{\"code\":400,\"message\":\"Request contains an invalid argument.\",\"status\":\"INVALID_ARGUMENT\"}}"
+      ],
+      "requiresManualReview": true,
+      "sha256": "302b42ec1f5c9c15fb556fd9c9c3cf7fae049299409ed680e82047e73db6bfbe",
+      "verifiedAt": "2026-10-09T09:12:30.856Z",
+      "stageResults": {
+        "stageA_fileValidation": {
+          "passed": true,
+          "message": "Valid file signature.",
+          "mimeTypeDetected": "application/pdf"
+        },
+        "stageB_classification": {
+          "passed": false,
+          "detectedType": "UNKNOWN",
+          "confidence": 0
+        },
+        "stageC_ocrEvidence": {
+          "passed": false,
+          "matchedKeywordsCount": 0,
+          "matchedKeywords": []
+        },
+        "stageD_decision": {
+          "status": "DOCUMENT_VALIDATION_UNAVAILABLE",
+          "decisionNotes": "AI service error: {\"error\":{\"code\":400,\"message\":\"Request contains an invalid argument.\",\"status\":\"INVALID_ARGUMENT\"}}"
+        }
       }
     }
   },
@@ -656,9 +1117,9 @@
       "relation": "Daughter / Legal Coparcener",
       "aadhaarMasked": "•••• •••• 9928",
       "status": "Approved",
-      "timestamp": "24 Oct 2024, 11:20 AM",
-      "tokenId": "C-DAC#99281",
-      "authMethod": "UIDAI OTP (Aadhaar Linked)",
+      "timestamp": "Just now",
+      "tokenId": "DEMO-ESIGN#89899",
+      "authMethod": "Simulated UIDAI OTP (Demonstration Sandbox - Not Live C-DAC)",
       "objectionFiled": false
     },
     {
@@ -700,6 +1161,70 @@
     }
   ],
   "alerts": [
+    {
+      "id": "alt-1791537221085",
+      "type": "success",
+      "title": "Officer Decision: Survey No. 99/2B",
+      "time": "Just now",
+      "meta": "Action: Sanctioned by Divisional Commissioner • Recorded by Shri Rajeshwar Rao, IAS",
+      "parcelId": "p-152349"
+    },
+    {
+      "id": "alt-1791537212890",
+      "type": "success",
+      "title": "Digital Certificate Issued: Survey No. 103/3",
+      "time": "Just now",
+      "meta": "Certificate Reference: CERT-BHU-P-506934-2026 • Valid for 1 year (Demo Sandbox)",
+      "parcelId": "p-506934"
+    },
+    {
+      "id": "alt-1791537152424",
+      "type": "success",
+      "title": "All Heir Consents Completed: Survey No. 89/1B",
+      "time": "Just now",
+      "meta": "All registered coparceners have approved the transfer.",
+      "parcelId": "p-89-1b"
+    },
+    {
+      "id": "alt-1791537152369",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 99/2B",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-15173 • Status: NEEDS_OFFICER_REVIEW • Satya Score: 100/100",
+      "parcelId": "p-152349"
+    },
+    {
+      "id": "alt-1791536930684",
+      "type": "error",
+      "title": "Escalation Notice Dispatched: Survey No. 99/2 sent to Tehsildar Mulshi",
+      "time": "Just now",
+      "meta": "Case Reference #ESC-REV-5528 • 14-day statutory enquiry notice initiated",
+      "parcelId": "p-255516"
+    },
+    {
+      "id": "alt-1791536344335",
+      "type": "success",
+      "title": "Document Review Finalized: Survey No. 103/3",
+      "time": "Just now",
+      "meta": "Audit fields verified and committed to case record.",
+      "parcelId": "p-506934"
+    },
+    {
+      "id": "alt-1791535506942",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 103/3",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-16675 • Status: TITLE_VERIFIED • Satya Score: 100/100",
+      "parcelId": "p-506934"
+    },
+    {
+      "id": "alt-1791535296889",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 176/4",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-81782 • Status: TITLE_VERIFIED • Satya Score: 100/100",
+      "parcelId": "p-296883"
+    },
     {
       "id": "alt-1791535255521",
       "type": "success",
@@ -783,17 +1308,59 @@
   ],
   "officerQueue": [
     {
-      "id": "oq-1791535255519",
-      "caseNo": "CASE-2026-MH-34262",
-      "parcelId": "p-255516",
-      "surveyNo": "Survey No. 99/2",
+      "id": "oq-1791537152365",
+      "caseNo": "CASE-2026-MH-15173",
+      "parcelId": "p-152349",
+      "surveyNo": "Survey No. 99/2B",
       "taluka": "Mulshi",
-      "applicant": "Ramesh Kulkarni",
+      "applicant": "Kavita Deshmukh",
+      "stage": "Initial Citizen Scrutiny & Document Verification",
+      "blockTriggers": [
+        "Doc Scrutiny: UNKNOWN"
+      ],
+      "urgency": "Medium",
+      "receivedDate": "Just now",
+      "status": "Sanctioned by Divisional Commissioner",
+      "actionNotes": "Sanctioned under Sec 34 MLRC following scrutiny of title deed."
+    },
+    {
+      "id": "oq-1791535506939",
+      "caseNo": "CASE-2026-MH-16675",
+      "parcelId": "p-506934",
+      "surveyNo": "Survey No. 103/3",
+      "taluka": "Mulshi",
+      "applicant": "Ananya Sharma",
       "stage": "Automated Clearance Audit",
       "blockTriggers": [],
       "urgency": "Medium",
       "receivedDate": "Just now",
       "status": "Auto-Cleared"
+    },
+    {
+      "id": "oq-1791535296886",
+      "caseNo": "CASE-2026-MH-81782",
+      "parcelId": "p-296883",
+      "surveyNo": "Survey No. 176/4",
+      "taluka": "Mulshi",
+      "applicant": "Ananya Sharma",
+      "stage": "Automated Clearance Audit",
+      "blockTriggers": [],
+      "urgency": "Medium",
+      "receivedDate": "Just now",
+      "status": "Auto-Cleared"
+    },
+    {
+      "id": "oq-1791536930676",
+      "caseNo": "ESC-REV-5528",
+      "parcelId": "p-255516",
+      "surveyNo": "Survey No. 99/2",
+      "taluka": "Mulshi",
+      "applicant": "Ramesh Kulkarni",
+      "stage": "Sub-Divisional Officer / Tehsildar Escalation",
+      "blockTriggers": [],
+      "urgency": "Critical",
+      "receivedDate": "Today",
+      "status": "Under Tehsildar Enquiry"
     },
     {
       "id": "oq-1",
@@ -843,6 +1410,86 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1791537221082-722",
+      "timestamp": "2026-10-09T09:13:41.082Z",
+      "parcelId": "p-152349",
+      "action": "OFFICER_OVERRIDE_SANCTIONED",
+      "actor": "Shri Rajeshwar Rao, IAS",
+      "notes": "Sanctioned under Sec 34 MLRC following scrutiny of title deed."
+    },
+    {
+      "id": "log-1791537212887-771",
+      "timestamp": "2026-10-09T09:13:32.887Z",
+      "parcelId": "p-506934",
+      "action": "CERTIFICATE_ISSUED",
+      "actor": "Shri Rajeshwar Rao, IAS",
+      "notes": "Demonstration Title certificate CERT-BHU-P-506934-2026 issued. Deterministic canonical hash: SHA256: 53bdc90e15c8a5ddeb18e0b218356a42f14e94b3728f32597676c25766c45b7c"
+    },
+    {
+      "id": "log-1791537152414-286",
+      "timestamp": "2026-10-09T09:12:32.414Z",
+      "parcelId": "p-89-1b",
+      "action": "HEIR_CONSENT_SIGNED",
+      "actor": "Smt. Sunita Sharma",
+      "notes": "Simulated Aadhaar OTP (882914) authenticated for Smt. Sunita Sharma. Token ID: DEMO-ESIGN#89899"
+    },
+    {
+      "id": "log-1791537152367-889",
+      "timestamp": "2026-10-09T09:12:32.367Z",
+      "parcelId": "p-152349",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Kavita Deshmukh)",
+      "notes": "Verification case CASE-2026-MH-15173 created with document satbara_extract_712.pdf. Initial Satya score calculated: 100/100. Docket queued for revenue review."
+    },
+    {
+      "id": "log-1791536930682-201",
+      "timestamp": "2026-10-09T09:08:50.682Z",
+      "parcelId": "p-255516",
+      "action": "CASE_ESCALATED",
+      "actor": "Citizen / Revenue Registry Gate",
+      "notes": "Escalated to Tehsildar & District Registrar. Enquiry Docket #ESC-REV-5528."
+    },
+    {
+      "id": "log-1791536344452-320",
+      "timestamp": "2026-10-09T08:59:04.452Z",
+      "parcelId": "p-506934",
+      "action": "VERIFICATION_EVALUATED",
+      "actor": "DILRMP Rules Engine v4.2",
+      "notes": "Re-evaluated 8 verification gates. Score: 100/100. Recommendation: Pass."
+    },
+    {
+      "id": "log-1791536344334-937",
+      "timestamp": "2026-10-09T08:59:04.334Z",
+      "parcelId": "p-506934",
+      "action": "EXTRACTION_CONFIRMED",
+      "actor": "Citizen / Auditor",
+      "notes": "Audit fields confirmed. Verification checks committed to case record."
+    },
+    {
+      "id": "log-1791536344221-489",
+      "timestamp": "2026-10-09T08:59:04.221Z",
+      "parcelId": "p-506934",
+      "action": "EXTRACTION_REVIEWED",
+      "actor": "Citizen / Auditor",
+      "notes": "Reviewed and corrected extracted fields. Document values synchronized to case record."
+    },
+    {
+      "id": "log-1791535506941-87",
+      "timestamp": "2026-10-09T08:45:06.941Z",
+      "parcelId": "p-506934",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Ananya Sharma)",
+      "notes": "Verification case CASE-2026-MH-16675 created with document Image 7.png. Initial Satya score calculated: 100/100. Docket queued for revenue review."
+    },
+    {
+      "id": "log-1791535296888-462",
+      "timestamp": "2026-10-09T08:41:36.888Z",
+      "parcelId": "p-296883",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Ananya Sharma)",
+      "notes": "Verification case CASE-2026-MH-81782 created with document Image 3.png. Initial Satya score calculated: 100/100. Docket queued for revenue review."
+    },
     {
       "id": "log-1791535255520-440",
       "timestamp": "2026-10-09T08:40:55.520Z",
@@ -950,6 +1597,26 @@
   ],
   "certificates": [
     {
+      "certId": "CERT-BHU-P-506934-2026",
+      "parcelId": "p-506934",
+      "ulpin": "27-24-0012-0749-001A",
+      "surveyNo": "Survey No. 103/3",
+      "issuedTo": "Ananya Sharma",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "areaHa": 1.35,
+      "issueDate": "09/10/2026",
+      "validUntil": "09/10/2027",
+      "issuerName": "Shri Rajeshwar Rao, IAS",
+      "issuerRole": "Divisional Commissioner / Revenue",
+      "certHash": "SHA256: 53bdc90e15c8a5ddeb18e0b218356a42f14e94b3728f32597676c25766c45b7c",
+      "status": "ISSUED",
+      "eligibilityNotes": "INTERNAL DEMONSTRATION CERTIFICATE - Satisfied all 8 verification gate criteria in demonstration sandbox.",
+      "isDemonstrationCert": true,
+      "sha256Verified": true
+    },
+    {
       "certId": "CERT-BHU-P-89-1B-2024",
       "parcelId": "p-89-1b",
       "ulpin": "27-24-0014-0089-001B",
@@ -963,9 +1630,11 @@
       "validUntil": "24/10/2025",
       "issuerName": "Shri Rajeshwar Rao, IAS",
       "issuerRole": "Divisional Commissioner / Revenue",
-      "certHash": "SHA256: 4f8b912a7e4c9b2d3801f92e01a88b19284c",
+      "certHash": "SHA256: a3af1528f9d6f4061359596f0e3ef4a50aa4d3260102e6dd5919d48aa6d2cc07",
       "status": "ISSUED",
-      "eligibilityNotes": "Passed all 8 verification gates without objection. Co-heir family consent deed verified."
+      "eligibilityNotes": "Passed all 8 verification gates without objection. Co-heir family consent deed verified.",
+      "isDemonstrationCert": true,
+      "sha256Verified": true
     }
   ]
 }

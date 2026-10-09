@@ -6,6 +6,28 @@ import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { db, Parcel, StoredCertificate } from './src/server/db.ts';
 import { OfficerQueueItem } from './src/types/index.ts';
+import {
+  classifyAndExtractLandDocument,
+  DocumentClassificationResult,
+  SUPPORTED_LAND_DOCUMENT_DESCRIPTIONS,
+} from './src/server/documentClassifier.ts';
+
+// Deterministic SHA-256 canonical hash computation for title certificates
+function computeCanonicalCertHash(certData: {
+  certId: string;
+  parcelId: string;
+  ulpin: string;
+  surveyNo: string;
+  issuedTo: string;
+  village: string;
+  taluka: string;
+  district: string;
+  areaHa: number;
+  issueDate: string;
+}): string {
+  const canonical = `${certData.certId}|${certData.parcelId}|${certData.ulpin}|${certData.surveyNo}|${certData.issuedTo}|${certData.village}|${certData.taluka}|${certData.district}|${certData.areaHa}|${certData.issueDate}`;
+  return crypto.createHash('sha256').update(canonical, 'utf8').digest('hex');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -334,7 +356,7 @@ app.get('/api/parcels/:id', (req, res) => {
 app.post('/api/parcels/upload', (req, res) => {
   const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
 
-  const processUpload = (req: express.Request, res: express.Response) => {
+  const processUpload = async (req: express.Request, res: express.Response) => {
     try {
       const file = req.file;
       const body = req.body || {};
@@ -355,19 +377,56 @@ app.post('/api/parcels/upload', (req, res) => {
 
       // File size validation (max 25MB)
       if (fileSize > 25 * 1024 * 1024) {
+        if (file) {
+          try { fs.unlinkSync(file.path); } catch (_) {}
+        }
         return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
       }
 
+      // STAGE A, B, C, D: Multi-Stage Document Classification and OCR Analysis
+      let classification: DocumentClassificationResult | undefined;
+
+      if (file) {
+        const fileBuffer = fs.readFileSync(file.path);
+        classification = await classifyAndExtractLandDocument(fileBuffer, file.mimetype, file.originalname);
+
+        // STAGE D ENFORCEMENT: Strictly Reject Non-Land Documents
+        if (classification.status === 'REJECTED_NOT_LAND_DOCUMENT') {
+          try { fs.unlinkSync(file.path); } catch (_) {}
+          return res.status(422).json({
+            success: false,
+            error: `DOCUMENT_REJECTED: The submitted file "${file.originalname}" is not recognized as a supported Maharashtra land record document.`,
+            reasons: classification.reasons,
+            classification,
+          });
+        }
+      }
+
+      // Populate fields from actual visual classification when available, or from user input
+      const extracted = classification?.extractedFields;
+
       const assignedSurvey =
-        surveyNo && surveyNo.trim().length > 0
-          ? surveyNo.trim()
-          : `Survey No. ${Math.floor(Math.random() * 200 + 10)}/${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`;
-      const assignedGat = `Gat No. ${Math.floor(Math.random() * 500 + 50)}`;
-      const assignedUlpin = `27-24-0012-0${Math.floor(Math.random() * 900 + 100)}-001A`;
+        extracted?.surveyNo ||
+        (surveyNo && surveyNo.trim().length > 0 ? surveyNo.trim() : 'Survey No. Unspecified');
+      const assignedGat = extracted?.gatNo || (extracted?.surveyNo ? `Gat No. ${extracted.surveyNo}` : 'Gat No. Unspecified');
+      const assignedUlpin = extracted?.ulpin || `27-24-0012-0${Math.floor(Math.random() * 900 + 100)}-001A`;
       const assignedCaseNo = `CASE-${new Date().getFullYear()}-MH-${Math.floor(Math.random() * 80000 + 10000)}`;
       const newParcelId = `p-${Date.now().toString().slice(-6)}`;
 
-      const parsedArea = Number(areaHa) > 0 ? Number(areaHa) : 1.25;
+      const parsedArea =
+        extracted?.areaHa && extracted.areaHa > 0
+          ? extracted.areaHa
+          : Number(areaHa) > 0
+          ? Number(areaHa)
+          : 1.25;
+
+      const assignedOwner =
+        extracted?.ownerName ||
+        (ownerName && ownerName.trim().length > 0 ? ownerName.trim() : 'Titleholder Unspecified');
+
+      const assignedVillage = extracted?.village || village || 'Mouje Hinjawadi';
+      const assignedTaluka = extracted?.taluka || taluka || 'Mulshi';
+      const assignedDistrict = extracted?.district || 'Pune';
 
       const rawParcel: Partial<Parcel> = {
         id: newParcelId,
@@ -375,18 +434,21 @@ app.post('/api/parcels/upload', (req, res) => {
         surveyNo: assignedSurvey,
         gatNo: assignedGat,
         ulpin: assignedUlpin,
-        village: village || 'Mouje Hinjawadi',
-        taluka: taluka || 'Mulshi',
-        district: 'Pune',
+        village: assignedVillage,
+        taluka: assignedTaluka,
+        district: assignedDistrict,
         state: stateAuthority === 'ka' ? 'Karnataka' : stateAuthority === 'up' ? 'Uttar Pradesh' : 'Maharashtra',
         areaHa: parsedArea,
         areaAcres: Number((parsedArea * 2.471).toFixed(2)),
-        classification: 'R-Zone (Residential / Agri Transition)',
-        primaryOwner: ownerName || 'Ananya Sharma',
+        classification: extracted?.classification || 'R-Zone (Residential / Agri Transition)',
+        primaryOwner: assignedOwner,
         jointShareInfo: 'Sole Khatedar (Aadhaar Verified)',
-        tags: ['Zero Litigation', 'No Mortgage Dues', 'Verified via Citizen Portal'],
+        tags: [
+          classification ? `Classified: ${classification.documentType}` : 'Verified via Citizen Portal',
+          classification?.requiresManualReview ? 'Requires Officer Scrutiny' : 'OCR Extracted',
+        ],
         verifiedDate: new Date().toISOString().split('T')[0],
-        encumbrance: encumbrance || 'Nil (All bank charges satisfied on CERSAI)',
+        encumbrance: extracted?.encumbrances || encumbrance || 'Nil (All bank charges satisfied on CERSAI)',
         litigation: litigation || 'Zero civil suits detected in District e-Courts register',
         buffer: 'Clear of irrigation canal buffer lines and CRZ regulations',
         overlap: 'Zero overlap recorded in cadastral tippani',
@@ -404,27 +466,37 @@ app.post('/api/parcels/upload', (req, res) => {
           uploadedAt: new Date().toLocaleString(),
           source,
           isDurableStorage: !!file,
+          classification,
         },
         override: null,
       };
 
       const evalResult = evaluateParcelGates(rawParcel);
 
+      const requiresOfficerScrutiny =
+        evalResult.recommendation !== 'Pass' ||
+        classification?.requiresManualReview ||
+        classification?.status === 'NEEDS_MANUAL_REVIEW';
+
       const newParcel: Parcel = {
         ...(rawParcel as any),
         score: evalResult.score,
         diligenceScore: evalResult.diligenceScore,
         gates: evalResult.gates,
-        recommendation: evalResult.recommendation,
-        recommendationExplanation: evalResult.recommendationExplanation,
-        status: evalResult.recommendation === 'Pass' ? 'PASS - Clear Title' : 'Needs Review - Red Flags Detected',
-        registrationStatus: evalResult.recommendation === 'Pass' ? 'TITLE VERIFIED' : 'PENDING OFFICER REVIEW',
-        caseStatus: evalResult.recommendation === 'Pass' ? 'TITLE_VERIFIED' : 'NEEDS_OFFICER_REVIEW',
+        recommendation: requiresOfficerScrutiny ? 'Needs Review' : evalResult.recommendation,
+        recommendationExplanation: requiresOfficerScrutiny
+          ? classification?.requiresManualReview
+            ? `Manual revenue scrutiny required: ${classification.reasons.join('; ')}`
+            : evalResult.recommendationExplanation
+          : evalResult.recommendationExplanation,
+        status: requiresOfficerScrutiny ? 'Needs Review - Officer Scrutiny Required' : 'PASS - Clear Title',
+        registrationStatus: requiresOfficerScrutiny ? 'PENDING OFFICER REVIEW' : 'TITLE VERIFIED',
+        caseStatus: requiresOfficerScrutiny ? 'NEEDS_OFFICER_REVIEW' : 'TITLE_VERIFIED',
       };
 
       db.createParcel(newParcel);
 
-      // Update Extraction data for demonstration pipeline (clearly labelled)
+      // Update Extraction data with real extracted fields and provenance
       db.updateExtraction({
         docRef: `712-MAH-${newParcel.taluka.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-5)}`,
         parcelId: newParcel.id,
@@ -432,41 +504,47 @@ app.post('/api/parcels/upload', (req, res) => {
         taluka: newParcel.taluka,
         district: newParcel.district,
         source: newParcel.documentMeta?.source || 'Citizen Upload',
+        classification,
         fields: {
           primaryOwner: {
             value: newParcel.primaryOwner,
             marathi: newParcel.primaryOwner,
-            confidence: 96,
-            status: 'High Confidence',
-            notes: 'Extracted from uploaded 7/12 (Demonstration OCR Pipeline).',
+            confidence: classification ? Math.round(classification.classificationConfidence * 100) : 95,
+            status: extracted?.ownerName ? 'AI Extracted' : 'Unverified',
+            notes: extracted?.ownerName ? 'Extracted from uploaded document text.' : 'Provided in citizen submission docket.',
+            provenance: extracted?.ownerName ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           surveyNumber: {
             value: newParcel.surveyNo.replace('Survey No. ', ''),
             marathi: newParcel.surveyNo,
-            confidence: 99,
-            status: 'Exact Match',
-            notes: 'Cross-referenced against village cadastral sheet.',
+            confidence: classification ? Math.round(classification.classificationConfidence * 100) : 95,
+            status: extracted?.surveyNo ? 'AI Extracted' : 'Unverified',
+            notes: extracted?.surveyNo ? 'Cross-referenced against village cadastral sheet.' : 'Pending document boundary reconciliation.',
+            provenance: extracted?.surveyNo ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           subDivision: {
-            value: 'Sub-division 1 (Hissa No. 1)',
-            marathi: 'पोट हिस्सा १',
-            confidence: 92,
+            value: extracted?.subDivision || 'Sub-division 1 (Hissa No. 1)',
+            marathi: extracted?.subDivision || 'पोट हिस्सा १',
+            confidence: 90,
             status: 'Verified',
             notes: 'Sub-division demarcation confirmed.',
+            provenance: extracted?.subDivision ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           totalArea: {
             value: `${newParcel.areaHa} Ha (${newParcel.areaAcres} Acres)`,
             marathi: `${newParcel.areaHa} हेक्टर`,
-            confidence: 95,
-            status: 'High Confidence',
+            confidence: 92,
+            status: extracted?.areaHa ? 'AI Extracted' : 'Unverified',
             notes: 'Area reconciled against revenue records.',
+            provenance: extracted?.areaHa ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           shareFraction: {
             value: 'Sole Occupancy (1/1 Full Share)',
             marathi: '१/१ पूर्ण हिस्सा',
-            confidence: 95,
+            confidence: 90,
             status: 'Verified',
             notes: 'Single owner record verified.',
+            provenance: 'UNVERIFIED',
           },
           encumbrances: {
             value: newParcel.encumbrance,
@@ -474,6 +552,7 @@ app.post('/api/parcels/upload', (req, res) => {
             confidence: 90,
             status: 'Verified',
             notes: 'CERSAI search results reconciled.',
+            provenance: extracted?.encumbrances ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
         },
       });
@@ -487,7 +566,10 @@ app.post('/api/parcels/upload', (req, res) => {
         taluka: newParcel.taluka,
         applicant: newParcel.primaryOwner,
         stage: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Automated Clearance Audit' : 'Initial Citizen Scrutiny & Document Verification',
-        blockTriggers: newParcel.gates.filter((g) => g.status === 'BLOCK' || g.status === 'WARN').map((g) => g.name),
+        blockTriggers: [
+          ...newParcel.gates.filter((g) => g.status === 'BLOCK' || g.status === 'WARN').map((g) => g.name),
+          ...(classification?.requiresManualReview ? [`Doc Scrutiny: ${classification.documentType}`] : []),
+        ],
         urgency: newParcel.caseStatus === 'REGISTRATION_FROZEN' ? 'Critical' : newParcel.score < 70 ? 'High' : 'Medium',
         receivedDate: 'Just now',
         status: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Auto-Cleared' : 'Pending Tahsildar Review',
@@ -515,6 +597,7 @@ app.post('/api/parcels/upload', (req, res) => {
         success: true,
         message: 'Verification request created and document processed successfully',
         data: newParcel,
+        classification,
       });
     } catch (err: any) {
       console.error('Error handling parcel upload:', err);
@@ -547,6 +630,40 @@ app.get('/api/documents/download/:filename', (req, res) => {
   }
 
   res.download(filePath, safeFilename);
+});
+
+// Dedicated Real Land Document Classification & OCR Inspection Endpoint
+app.post('/api/documents/classify', uploadMiddleware.single('document'), async (req, res) => {
+  try {
+    let fileBuffer: Buffer | null = null;
+    let mimeType = 'application/pdf';
+    let originalName = 'document.pdf';
+
+    if (req.file) {
+      fileBuffer = fs.readFileSync(req.file.path);
+      mimeType = req.file.mimetype;
+      originalName = req.file.originalname;
+      // Clean up uploaded temporary preview file
+      try { fs.unlinkSync(req.file.path); } catch (_) {}
+    } else if (req.body?.base64) {
+      fileBuffer = Buffer.from(req.body.base64, 'base64');
+      mimeType = req.body.mimeType || 'application/pdf';
+      originalName = req.body.fileName || 'document.pdf';
+    }
+
+    if (!fileBuffer) {
+      return res.status(400).json({ success: false, error: 'No document file or base64 data provided for classification.' });
+    }
+
+    const result = await classifyAndExtractLandDocument(fileBuffer, mimeType, originalName);
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err: any) {
+    console.error('Document classification endpoint error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Server error during document classification.' });
+  }
 });
 
 // 4. Re-evaluate Verification Gates
@@ -920,11 +1037,21 @@ app.post('/api/heir-consents', (req, res) => {
 
 app.post('/api/heir-consents/:id/sign', (req, res) => {
   const { otp } = req.body;
+
+  // Validate simulated fixed demo OTP before updating consent status
+  const cleanOtp = otp ? String(otp).trim() : '';
+  if (cleanOtp !== '882914') {
+    return res.status(400).json({
+      success: false,
+      error: 'INVALID_OTP: The entered simulated Aadhaar OTP is invalid. Use fixed demo OTP 882914 to authenticate in this demonstration sandbox.',
+    });
+  }
+
   const consent = db.updateHeirConsent(req.params.id, {
     status: 'Approved',
     timestamp: 'Just now',
-    tokenId: `C-DAC#${Math.floor(Math.random() * 80000 + 10000)}`,
-    authMethod: 'UIDAI OTP (Aadhaar Linked - eSign Verified)',
+    tokenId: `DEMO-ESIGN#${Math.floor(Math.random() * 80000 + 10000)}`,
+    authMethod: 'Simulated UIDAI OTP (Demonstration Sandbox - Not Live C-DAC)',
   });
 
   if (!consent) {
@@ -935,7 +1062,7 @@ app.post('/api/heir-consents/:id/sign', (req, res) => {
     parcelId: consent.parcelId,
     action: 'HEIR_CONSENT_SIGNED',
     actor: consent.name,
-    notes: `Aadhaar OTP authenticated. Token ID: ${consent.tokenId}`,
+    notes: `Simulated Aadhaar OTP (882914) authenticated for ${consent.name}. Token ID: ${consent.tokenId}`,
   });
 
   // Check if all heirs for this parcel are now approved
@@ -964,7 +1091,7 @@ app.post('/api/heir-consents/:id/sign', (req, res) => {
     }
   }
 
-  res.json({ success: true, message: 'Heir consent approved successfully', data: consent });
+  res.json({ success: true, message: 'Heir consent approved successfully (Simulated Demo Sandbox)', data: consent });
 });
 
 app.post('/api/heir-consents/:id/objection', (req, res) => {
@@ -1011,7 +1138,7 @@ app.get('/api/alerts', (req, res) => {
   res.json({ success: true, data: db.getAlerts() });
 });
 
-// 12. Certificates API (Real Persistence & Eligibility Enforcement)
+// 12. Certificates API (Real Persistence, Deterministic Hash & Eligibility Enforcement)
 app.get('/api/certificates', (req, res) => {
   const { parcelId } = req.query;
   if (parcelId && typeof parcelId === 'string') {
@@ -1029,7 +1156,7 @@ app.post('/api/certificates/issue', (req, res) => {
     return res.status(404).json({ success: false, error: 'Parcel record not found' });
   }
 
-  // Check strict eligibility rules
+  // Check strict eligibility rules: only allow issue if Pass or Officer Sanctioned
   const isEligible =
     parcel.recommendation === 'Pass' ||
     parcel.caseStatus === 'OFFICER_SANCTIONED' ||
@@ -1045,7 +1172,22 @@ app.post('/api/certificates/issue', (req, res) => {
   }
 
   const certId = `CERT-BHU-${parcel.id.toUpperCase()}-${new Date().getFullYear()}`;
-  const certHash = `SHA256: ${Math.random().toString(16).slice(2, 10)}${Math.random().toString(16).slice(2, 10)}9b2d`;
+  const issueDate = new Date().toLocaleDateString('en-GB');
+
+  // Compute canonical deterministic SHA-256 hash
+  const canonicalHash = computeCanonicalCertHash({
+    certId,
+    parcelId: parcel.id,
+    ulpin: parcel.ulpin,
+    surveyNo: parcel.surveyNo,
+    issuedTo: parcel.primaryOwner,
+    village: parcel.village,
+    taluka: parcel.taluka,
+    district: parcel.district,
+    areaHa: parcel.areaHa,
+    issueDate,
+  });
+  const certHash = `SHA256: ${canonicalHash}`;
 
   const newCert: StoredCertificate = {
     certId,
@@ -1057,7 +1199,7 @@ app.post('/api/certificates/issue', (req, res) => {
     taluka: parcel.taluka,
     district: parcel.district,
     areaHa: parcel.areaHa,
-    issueDate: new Date().toLocaleDateString('en-GB'),
+    issueDate,
     validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-GB'),
     issuerName: issuerName || 'Shri Rajeshwar Rao, IAS',
     issuerRole: 'Divisional Commissioner / Revenue',
@@ -1065,8 +1207,10 @@ app.post('/api/certificates/issue', (req, res) => {
     status: 'ISSUED',
     eligibilityNotes:
       parcel.caseStatus === 'OFFICER_SANCTIONED'
-        ? 'Issued following Officer Override sanction under Sec. 34 MLRC.'
-        : 'Passed all 8 verification gates without objection.',
+        ? 'INTERNAL DEMONSTRATION CERTIFICATE - Issued following simulated Officer Override sanction under Sec. 34 MLRC.'
+        : 'INTERNAL DEMONSTRATION CERTIFICATE - Satisfied all 8 verification gate criteria in demonstration sandbox.',
+    isDemonstrationCert: true,
+    sha256Verified: true,
   };
 
   db.issueCertificate(newCert);
@@ -1075,14 +1219,14 @@ app.post('/api/certificates/issue', (req, res) => {
     parcelId: parcel.id,
     action: 'CERTIFICATE_ISSUED',
     actor: issuerName || 'Shri Rajeshwar Rao, IAS',
-    notes: `Title verification certificate ${certId} issued. Ledger hash: ${certHash}`,
+    notes: `Demonstration Title certificate ${certId} issued. Deterministic canonical hash: ${certHash}`,
   });
 
   db.addAlert({
     type: 'success',
     title: `Digital Certificate Issued: ${parcel.surveyNo}`,
     time: 'Just now',
-    meta: `Certificate Reference: ${certId} • Valid for 1 year`,
+    meta: `Certificate Reference: ${certId} • Valid for 1 year (Demo Sandbox)`,
     parcelId: parcel.id,
   });
 
@@ -1104,12 +1248,44 @@ app.get('/api/certificates/verify', (req, res) => {
     });
   }
 
-  res.json({ success: true, found: true, data: cert });
+  // Recalculate deterministic hash from canonical representation and validate
+  const expectedHash = computeCanonicalCertHash({
+    certId: cert.certId,
+    parcelId: cert.parcelId,
+    ulpin: cert.ulpin,
+    surveyNo: cert.surveyNo,
+    issuedTo: cert.issuedTo,
+    village: cert.village,
+    taluka: cert.taluka,
+    district: cert.district,
+    areaHa: cert.areaHa,
+    issueDate: cert.issueDate,
+  });
+
+  const storedRaw = cert.certHash.replace('SHA256: ', '').trim();
+  const isHashValid = storedRaw.toLowerCase() === expectedHash.toLowerCase();
+
+  res.json({
+    success: true,
+    found: true,
+    data: {
+      ...cert,
+      sha256Verified: isHashValid,
+      recalculatedHash: `SHA256: ${expectedHash}`,
+      isDemonstrationCertificate: true,
+      verificationStatus: isHashValid ? 'CANONICAL_HASH_VALID' : 'HASH_MISMATCH',
+      disclaimer:
+        'INTERNAL DEMONSTRATION CERTIFICATE ONLY - This is a software sandbox demonstration document and does not constitute a legal or government-issued title deed under the Registration Act 1908.',
+    },
+  });
 });
 
-// 13. Dynamic Diligence Report API (Connected to Selected Parcel)
+// 13. Dynamic Diligence Report API (Strict 404 for missing IDs)
 app.get('/api/reports/:id', (req, res) => {
-  const parcel = db.getParcelById(req.params.id) || db.getParcels()[0];
+  const parcel = db.getParcelById(req.params.id);
+  if (!parcel) {
+    return res.status(404).json({ success: false, error: 'Parcel record not found for the requested ID' });
+  }
 
   const consents = db.getHeirConsents(parcel.id);
   const pendingConsents = consents.filter((c) => c.status === 'Pending').length;

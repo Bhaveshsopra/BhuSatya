@@ -58,11 +58,13 @@ export const HeirConsentTracker: React.FC<HeirConsentTrackerProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setStatusMsg('✓ Aadhaar OTP Authenticated! Heir Consent eSigned with C-DAC 2.1 PKI.');
+        setStatusMsg('✓ Simulated Aadhaar OTP Authenticated! Heir Consent eSigned (Demonstration Sandbox).');
         setSigningHeirId(null);
         onRefreshConsents();
         onRefreshParcels?.();
         setTimeout(() => setStatusMsg(null), 3500);
+      } else {
+        setStatusMsg(`OTP Error: ${data.error || 'Authentication failed. Please use demo OTP 882914.'}`);
       }
     } catch (err) {
       console.error(err);
@@ -343,14 +345,23 @@ export const HeirConsentTracker: React.FC<HeirConsentTrackerProps> = ({
             <div className="flex items-center justify-between pb-2 border-b border-[#c0c9be]/30">
               <h4 className="text-sm font-bold text-[#131b2e] flex items-center gap-2">
                 <span className="material-symbols-outlined text-[#003b1b]">fingerprint</span>
-                UIDAI Aadhaar OTP Verification
+                Simulated Aadhaar OTP eSign
               </h4>
               <button onClick={() => setSigningHeirId(null)} className="text-[#717970] hover:text-[#131b2e]">
                 <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
+            <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900 space-y-1">
+              <span className="font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">info</span>
+                Simulation Sandbox Mode
+              </span>
+              <p>
+                Live UIDAI / C-DAC gateway is simulated for this demonstration. Use fixed demo OTP: <strong className="font-mono bg-white px-1.5 py-0.5 rounded border border-amber-300 text-[#003b1b]">882914</strong>.
+              </p>
+            </div>
             <p className="text-xs text-[#717970]">
-              6-digit OTP sent to registered mobile linked with Aadhaar (•••• •••• 7105).
+              Simulated verification dispatched to registered mobile (•••• •••• 7105).
             </p>
             <div className="space-y-1">
               <label className="text-[11px] font-bold text-[#404941] uppercase">Enter OTP</label>

@@ -142,6 +142,9 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
         onRefreshParcels?.();
         setSaveMessage('✓ Document uploaded and processed into demonstration pipeline!');
         setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        const reasonText = data.reasons && data.reasons.length > 0 ? ` Reason: ${data.reasons.join('; ')}` : '';
+        setErrorMessage(`${data.error || 'Failed to upload document.'}${reasonText}`);
       }
     } catch (err) {
       console.error(err);
@@ -573,6 +576,118 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
           </div>
 
           <div className="p-5 flex flex-col gap-4 max-h-[740px] overflow-y-auto">
+            {/* Multi-Stage Document Classifier & Forensics Analysis Card */}
+            {(selectedParcel.documentMeta?.classification || extraction.classification) && (() => {
+              const clf = (selectedParcel.documentMeta?.classification || extraction.classification)!;
+              const isAccepted = clf.status === 'ACCEPTED_LAND_DOCUMENT';
+              const isManual = clf.status === 'NEEDS_MANUAL_REVIEW';
+              const isUnavailable = clf.status === 'DOCUMENT_VALIDATION_UNAVAILABLE';
+
+              return (
+                <div className={`p-4 rounded-xl border text-xs space-y-3 ${
+                  isAccepted
+                    ? 'bg-[#92f5a4]/15 border-[#006d30]/30'
+                    : isManual
+                    ? 'bg-amber-50 border-amber-300'
+                    : isUnavailable
+                    ? 'bg-slate-50 border-slate-300'
+                    : 'bg-red-50 border-red-300'
+                }`}>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className={`material-symbols-outlined text-lg ${
+                        isAccepted ? 'text-[#007233]' : isManual ? 'text-amber-800' : 'text-slate-700'
+                      }`}>
+                        {isAccepted ? 'verified' : isManual ? 'flag' : 'help'}
+                      </span>
+                      <div>
+                        <span className="font-bold text-[#131b2e] block">
+                          Multi-Stage Land Document Validation Gate
+                        </span>
+                        <span className="text-[11px] text-[#404941]">
+                          {clf.documentTypeDescription}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      isAccepted
+                        ? 'bg-[#92f5a4] text-[#007233]'
+                        : isManual
+                        ? 'bg-amber-200 text-amber-900'
+                        : 'bg-slate-200 text-slate-800'
+                    }`}>
+                      {clf.status.replace(/_/g, ' ')}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1">
+                    <div className="bg-white/80 p-2 rounded-lg border border-[#c0c9be]/40">
+                      <span className="text-[10px] text-[#717970] block font-semibold">Confidence</span>
+                      <strong className="text-[#003b1b]">{Math.round(clf.classificationConfidence * 100)}%</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-[#c0c9be]/40">
+                      <span className="text-[10px] text-[#717970] block font-semibold">Language</span>
+                      <strong className="text-[#131b2e]">{clf.language}</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-[#c0c9be]/40">
+                      <span className="text-[10px] text-[#717970] block font-semibold">Image Quality</span>
+                      <strong className="text-[#131b2e] capitalize">{clf.imageQuality.replace('_', ' ')}</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-[#c0c9be]/40">
+                      <span className="text-[10px] text-[#717970] block font-semibold">Manual Review</span>
+                      <strong className={clf.requiresManualReview ? 'text-amber-800' : 'text-[#007233]'}>
+                        {clf.requiresManualReview ? 'Required' : 'Cleared'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {clf.visibleEvidence && clf.visibleEvidence.length > 0 && (
+                    <div className="space-y-1 pt-1">
+                      <span className="text-[10px] font-bold text-[#717970] uppercase">
+                        Spotted Revenue Evidence Tokens ({clf.visibleEvidence.length})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {clf.visibleEvidence.map((token, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-0.5 rounded bg-white text-[#003b1b] border border-[#c0c9be]/60 text-[10px] font-mono"
+                          >
+                            {token}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {clf.reasons && clf.reasons.length > 0 && (
+                    <div className="space-y-1 pt-1 border-t border-[#c0c9be]/30">
+                      <span className="text-[10px] font-bold text-[#717970] uppercase">Adjudication Reasons</span>
+                      <ul className="list-disc pl-4 space-y-0.5 text-[11px] text-[#404941]">
+                        {clf.reasons.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {clf.stageResults && (
+                    <div className="pt-1 border-t border-[#c0c9be]/30 flex flex-wrap gap-2 text-[10px]">
+                      <span className="px-2 py-0.5 rounded bg-white border border-[#c0c9be]/50 text-[#003b1b]">
+                        ✓ Stage A: {clf.stageResults.stageA_fileValidation.message}
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-white border border-[#c0c9be]/50 text-[#003b1b]">
+                        ✓ Stage B: Vision Classifier ({clf.stageResults.stageB_classification.detectedType})
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-white border border-[#c0c9be]/50 text-[#003b1b]">
+                        ✓ Stage C: Verified {clf.stageResults.stageC_ocrEvidence.matchedKeywordsCount} Keywords
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* FIELD 1: Primary Owner Name */}
             <div className="flex flex-col gap-1 p-3 rounded-xl bg-white hover:bg-[#f2f3ff] transition-colors border border-[#c0c9be]/50 shadow-2xs">
               <div className="flex items-center justify-between gap-2">
