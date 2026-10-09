@@ -1,7 +1,104 @@
 {
   "parcels": [
     {
+      "id": "p-834693",
+      "caseNo": "CASE-2026-MH-30159",
+      "surveyNo": "Survey No. 301/2B",
+      "gatNo": "Gat No. 124",
+      "ulpin": "27-24-0012-0764-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 2.1,
+      "areaAcres": 5.19,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Bhavesh Sopra",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Zero Litigation",
+        "No Mortgage Dues",
+        "Verified via Citizen Portal"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 25200000,
+      "askingPrice": 26250000,
+      "stampDuty": 1837500,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "Uploaded_712_Extract.pdf",
+        "fileSize": "1.5 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "10/9/2026, 8:17:14 AM",
+        "source": "Uploaded Scanned 7/12"
+      },
+      "override": null,
+      "score": 80,
+      "diligenceScore": 80,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries."
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI."
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "BLOCK",
+          "desc": "Zero civil suits detected in District e-Courts register"
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "BLOCK",
+          "desc": "Clear of irrigation canal buffer lines and CRZ regulations"
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet."
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (2.1 Ha)."
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office."
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified."
+        }
+      ],
+      "recommendation": "Needs Review",
+      "recommendationExplanation": "Automated verification detected 2 BLOCK triggers and 0 WARN triggers. Requires Officer Override or statutory clearance before deed registration.",
+      "status": "Needs Review - Red Flags Detected",
+      "registrationStatus": "PENDING OFFICER REVIEW",
+      "caseStatus": "NEEDS_OFFICER_REVIEW"
+    },
+    {
       "id": "p-142-3a",
+      "caseNo": "CASE-2024-MH-99812",
       "surveyNo": "Survey No. 142/3A",
       "gatNo": "Gat No. 408",
       "ulpin": "27-24-0012-0142-003A",
@@ -14,13 +111,20 @@
       "classification": "R-Zone (Res. Convertible / Agri)",
       "primaryOwner": "Suresh Vithalrao Deshmukh",
       "jointShareInfo": "Joint Share (2 Heirs)",
-      "score": 94,
+      "score": 68,
       "diligenceScore": 68,
-      "status": "PASS - Clear Title",
+      "status": "Needs Review - 2 Red Flags Detected",
       "registrationStatus": "REGISTRATION FROZEN",
-      "tags": ["Zero Litigation", "No Mortgage Dues", "Updated 2h ago"],
+      "caseStatus": "NEEDS_OFFICER_REVIEW",
+      "recommendation": "Needs Review",
+      "recommendationExplanation": "Active civil suit (No. 842/2021) and 30m canal buffer overlap require Divisional Commissioner / Officer Override under Sec. 34 MLRC before registry clearance.",
+      "tags": [
+        "Active Court Injunction",
+        "Canal Buffer Reservation",
+        "Bank Lien Active"
+      ],
       "verifiedDate": "2024-10-24",
-      "encumbrance": "Active hypothecation Rs 15,00,000 to Bank of Maharashtra without closure NOC",
+      "encumbrance": "Bank of Maharashtra, Branch Hinjawadi - Charge Rs 15,00,000 (Agri Loan dated 12/03/2019)",
       "litigation": "Civil Court Senior Division Pune - Special Suit 842/2021 filed by co-heir. Active Stay Order in place.",
       "buffer": "Eastern strip (0.12 Ha) within Khadakwasla Canal buffer reservation (30m).",
       "overlap": "0.02 Ha overlap detected with adjacent parcel 142/2 in 2021 DGPS survey.",
@@ -29,20 +133,68 @@
       "stampDuty": 1260000,
       "dgpsSurveyDate": "14 May 2024",
       "tilrAuthority": "Taluka Inspector of Land Records (TILR) Mulshi",
+      "documentMeta": {
+        "fileName": "MahaBhulekh_712_Hinjawadi_142_3A.pdf",
+        "fileSize": "2.4 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "24 Oct 2024, 11:28 IST",
+        "source": "Maharashtra e-Mahabhulekh Portal"
+      },
       "gates": [
-        { "id": 1, "name": "1. Ownership Chain & 30-Year Title Search", "status": "PASS", "desc": "Continuous unbroken lineage verified from 1994 to 2024 across 6 mutation notes." },
-        { "id": 2, "name": "2. Mortgage & Financial Encumbrance (CERSAI)", "status": "WARN", "desc": "Active hypothecation Rs 15,00,000 to Bank of Maharashtra without closure NOC." },
-        { "id": 3, "name": "3. Court Injunctions & Pending Litigation", "status": "BLOCK", "desc": "Civil Court Senior Division Pune - Special Suit 842/2021 filed by co-heir. Active Stay Order in place." },
-        { "id": 4, "name": "4. Restricted / Government Land Classification", "status": "BLOCK", "desc": "Eastern strip (0.12 Ha) within Khadakwasla Canal buffer reservation." },
-        { "id": 5, "name": "5. Cadastral Boundary Overlap", "status": "WARN", "desc": "0.02 Ha overlap detected with adjacent parcel 142/2 in 2021 DGPS survey." },
-        { "id": 6, "name": "6. Area Match (7/12 vs Land Records Dept Tippani)", "status": "PASS", "desc": "Area records match perfectly: 1.45 Ha on 7/12, 1.45 Ha on Village Map." },
-        { "id": 7, "name": "7. Multiple Sales / Pre-existing Agreement to Sale", "status": "PASS", "desc": "No duplicate Registered Agreement to Sale found at Sub-Registrar Office." },
-        { "id": 8, "name": "8. Land Revenue Dues & Non-Agri Tax", "status": "PASS", "desc": "All agricultural cesses paid up to FY 2023-24. No arrears." }
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Continuous unbroken lineage verified from 1994 to 2024 across 6 mutation notes."
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "WARN",
+          "desc": "Active hypothecation Rs 15,00,000 to Bank of Maharashtra without closure NOC."
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "BLOCK",
+          "desc": "Civil Court Senior Division Pune - Special Suit 842/2021 filed by co-heir. Active Stay Order in place."
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "BLOCK",
+          "desc": "Eastern strip (0.12 Ha) within Khadakwasla Canal buffer reservation."
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "WARN",
+          "desc": "0.02 Ha overlap detected with adjacent parcel 142/2 in 2021 DGPS survey."
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match perfectly: 1.45 Ha on 7/12, 1.45 Ha on Village Map."
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate Registered Agreement to Sale found at Sub-Registrar Office."
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Non-Agri Tax",
+          "status": "PASS",
+          "desc": "All agricultural cesses paid up to FY 2023-24. No arrears."
+        }
       ],
       "override": null
     },
     {
       "id": "p-89-1b",
+      "caseNo": "CASE-2024-MH-77192",
       "surveyNo": "Survey No. 89/1B",
       "gatNo": "Gat No. 112",
       "ulpin": "27-24-0014-0089-001B",
@@ -51,15 +203,22 @@
       "district": "Pune",
       "state": "Maharashtra",
       "areaHa": 0.85,
-      "areaAcres": 2.10,
+      "areaAcres": 2.1,
       "classification": "Agricultural / Semi-Urban",
       "primaryOwner": "Dattatray Anant Sharma & Legal Heirs",
       "jointShareInfo": "Coparcenary Family Land",
       "score": 76,
       "diligenceScore": 76,
-      "status": "WARN - Pending Heir Consent",
+      "status": "Needs Review - Pending Heir Consent",
       "registrationStatus": "HEIR CONSENT INCOMPLETE",
-      "tags": ["2/3 Heirs Signed", "Civil Suit Inactive", "Pending: 1 signatory"],
+      "caseStatus": "PENDING_REVIEW",
+      "recommendation": "Needs Review",
+      "recommendationExplanation": "2 of 3 legal heirs have executed e-Consent deeds. Smt. Savita Kadam pending response before certificate eligibility.",
+      "tags": [
+        "2/3 Heirs Signed",
+        "Civil Suit Inactive",
+        "Pending: 1 signatory"
+      ],
       "verifiedDate": "2024-10-23",
       "encumbrance": "Nil (Bank of Baroda NOC verified on CERSAI)",
       "litigation": "No active injunctions. Inactive family partition agreement.",
@@ -70,20 +229,68 @@
       "stampDuty": 686000,
       "dgpsSurveyDate": "22 Jun 2024",
       "tilrAuthority": "TILR Haveli Division 2",
+      "documentMeta": {
+        "fileName": "RoR_Extract_Wagholi_89_1B.pdf",
+        "fileSize": "1.8 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "23 Oct 2024, 09:15 IST",
+        "source": "MahaBhulekh Citizen Portal"
+      },
       "gates": [
-        { "id": 1, "name": "1. Ownership Chain & 30-Year Title Search", "status": "PASS", "desc": "Ancestral succession verified from grandfather Anant Sharma (Mutation 1988)." },
-        { "id": 2, "name": "2. Mortgage & Financial Encumbrance (CERSAI)", "status": "PASS", "desc": "Zero encumbrance registered on CERSAI portal." },
-        { "id": 3, "name": "3. Court Injunctions & Pending Litigation", "status": "PASS", "desc": "Civil Court Pune records clear." },
-        { "id": 4, "name": "4. Restricted / Government Land Classification", "status": "PASS", "desc": "General unreserved agricultural revenue zone." },
-        { "id": 5, "name": "5. Cadastral Boundary Overlap", "status": "PASS", "desc": "Boundary demarcation fully verified with e-Mojani map." },
-        { "id": 6, "name": "6. Area Match (7/12 vs Land Records Dept Tippani)", "status": "PASS", "desc": "0.85 Hectares match on revenue ledger and digital shapefiles." },
-        { "id": 7, "name": "7. Multiple Sales / Pre-existing Agreement to Sale", "status": "PASS", "desc": "No prior agreement to sell recorded." },
-        { "id": 8, "name": "8. Legal Heir Statutory Consent", "status": "WARN", "desc": "2 of 3 legal heirs registered consent. Smt. Savita Kadam pending signature." }
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Ancestral succession verified from grandfather Anant Sharma (Mutation 1988)."
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero encumbrance registered on CERSAI portal."
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "PASS",
+          "desc": "Civil Court Pune records clear."
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "PASS",
+          "desc": "General unreserved agricultural revenue zone."
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation fully verified with e-Mojani map."
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "0.85 Hectares match on revenue ledger and digital shapefiles."
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No prior agreement to sell recorded."
+        },
+        {
+          "id": 8,
+          "name": "8. Legal Heir Statutory Consent",
+          "status": "WARN",
+          "desc": "2 of 3 legal heirs registered consent. Smt. Savita Kadam pending signature."
+        }
       ],
       "override": null
     },
     {
       "id": "p-312",
+      "caseNo": "CASE-2024-MH-09820",
       "surveyNo": "Gat No. 312",
       "gatNo": "Gat No. 312",
       "ulpin": "27-24-0018-0312-0000",
@@ -91,16 +298,23 @@
       "taluka": "Khed",
       "district": "Pune",
       "state": "Maharashtra",
-      "areaHa": 2.10,
+      "areaHa": 2.1,
       "areaAcres": 5.19,
       "classification": "Restricted Inam / Wakf / Trust Land",
       "primaryOwner": "Trustee Committee / Devasthan Inam Class III",
       "jointShareInfo": "Institutional Trust Registry",
       "score": 32,
       "diligenceScore": 32,
-      "status": "BLOCK - Wakf / Restricted Land",
+      "status": "BLOCK - Restricted / Inam Land",
       "registrationStatus": "MUTATION PROHIBITED",
-      "tags": ["Active Mutation Block", "Tehsildar Review", "Action Required"],
+      "caseStatus": "REGISTRATION_FROZEN",
+      "recommendation": "Needs Review",
+      "recommendationExplanation": "Enquiry Case SDO/KHED/MUT-2024/09 pending before Sub-Divisional Officer. Alienation prohibited without Collector prior sanction.",
+      "tags": [
+        "Active Mutation Block",
+        "Tehsildar Review",
+        "Action Required"
+      ],
       "verifiedDate": "2024-10-22",
       "encumbrance": "Transfer prohibition under Section 43/84 Bombay Tenancy & Agricultural Lands Act.",
       "litigation": "Enquiry Case SDO/KHED/MUT-2024/09 pending before Sub-Divisional Officer Khed.",
@@ -111,71 +325,117 @@
       "stampDuty": 1540000,
       "dgpsSurveyDate": "10 Jan 2024",
       "tilrAuthority": "TILR Khed Tehsil",
+      "documentMeta": {
+        "fileName": "Devasthan_Record_Alandi_312.pdf",
+        "fileSize": "3.1 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "22 Oct 2024, 15:40 IST",
+        "source": "Sub-Registrar Khed Archive"
+      },
       "gates": [
-        { "id": 1, "name": "1. Ownership Chain & 30-Year Title Search", "status": "WARN", "desc": "Irregular mutation note 1402 flagged for non-sanctioned alienation." },
-        { "id": 2, "name": "2. Mortgage & Financial Encumbrance (CERSAI)", "status": "PASS", "desc": "No bank mortgages found." },
-        { "id": 3, "name": "3. Court Injunctions & Pending Litigation", "status": "BLOCK", "desc": "Active enquiry under Sec. 84 Bombay Tenancy Act pending before SDO." },
-        { "id": 4, "name": "4. Restricted / Government Land Classification", "status": "BLOCK", "desc": "Devasthan / Wakf / Class II non-transferable without Collector prior sanction." },
-        { "id": 5, "name": "5. Cadastral Boundary Overlap", "status": "WARN", "desc": "0.15 Ha overlap with temple corridor." },
-        { "id": 6, "name": "6. Area Match (7/12 vs Land Records Dept Tippani)", "status": "PASS", "desc": "Area records reconcile at 2.10 Hectares." },
-        { "id": 7, "name": "7. Multiple Sales / Pre-existing Agreement to Sale", "status": "BLOCK", "desc": "Unauthorized unregistered power of attorney cited in dispute notice." },
-        { "id": 8, "name": "8. Land Revenue Dues & Non-Agri Tax", "status": "PASS", "desc": "Cesses cleared." }
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "WARN",
+          "desc": "Irregular mutation note 1402 flagged for non-sanctioned alienation."
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "No bank mortgages found."
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "BLOCK",
+          "desc": "Active enquiry under Sec. 84 Bombay Tenancy Act pending before SDO."
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "BLOCK",
+          "desc": "Devasthan / Wakf / Class II non-transferable without Collector prior sanction."
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "WARN",
+          "desc": "0.15 Ha overlap with temple corridor."
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records reconcile at 2.10 Hectares."
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "BLOCK",
+          "desc": "Unauthorized unregistered power of attorney cited in dispute notice."
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Non-Agri Tax",
+          "status": "PASS",
+          "desc": "Cesses cleared."
+        }
       ],
       "override": null
     }
   ],
   "extraction": {
-    "docRef": "712-MAH-PUN-2024-99812",
-    "source": "Maharashtra e-Mahabhulekh 7/12 Extract",
-    "engine": "OCR-VGG & Indic-BERT v4",
-    "quality": "96.4% High Confidence",
-    "village": "Hinjawadi",
+    "docRef": "712-MAH-MUL-34731",
+    "parcelId": "p-834693",
+    "source": "Uploaded Scanned 7/12",
+    "engine": "Indic-BERT v4.3 + Google Vision Transformer",
+    "quality": "98.1% High Confidence",
+    "village": "Mouje Hinjawadi",
     "taluka": "Mulshi",
     "district": "Pune",
     "fields": {
       "primaryOwner": {
-        "value": "Suresh Vithalrao Deshmukh",
-        "marathi": "सुरेश विठ्ठलराव देशमुख",
-        "confidence": 98,
+        "value": "Bhavesh Sopra",
+        "marathi": "Bhavesh Sopra",
+        "confidence": 96,
         "status": "High Confidence",
-        "notes": "Transliterated from Devanagari 'सुरेश विठ्ठलराव देशमुख' with matching Aadhaar roster."
+        "notes": "Extracted from uploaded 7/12 (Demonstration OCR Pipeline)."
       },
       "surveyNumber": {
-        "value": "142/3A",
-        "marathi": "१४२/३अ",
+        "value": "301/2B",
+        "marathi": "Survey No. 301/2B",
         "confidence": 99,
         "status": "Exact Match",
-        "notes": "Cross-referenced against Mulshi Taluk Cadastral GIS Polygon #PUN-142-3A."
+        "notes": "Cross-referenced against village cadastral sheet."
       },
       "subDivision": {
-        "value": "Sub-division 3A (Hissa No. 1)",
-        "marathi": "पोट हिस्सा ३अ (क्र. १)",
-        "confidence": 91,
+        "value": "Sub-division 1 (Hissa No. 1)",
+        "marathi": "पोट हिस्सा १",
+        "confidence": 92,
         "status": "Verified",
-        "notes": "Valid sub-division demarcation confirmed via e-Mojani record."
+        "notes": "Sub-division demarcation confirmed."
       },
       "totalArea": {
-        "value": "1.45 Ha (01H 45R Pot Kharaba: 0.05R)",
-        "marathi": "०१ हेक्टर ४५ आर (पोटखराबा ०.०५ आर)",
+        "value": "2.1 Ha (5.19 Acres)",
+        "marathi": "2.1 हेक्टर",
         "confidence": 95,
         "status": "High Confidence",
-        "notes": "14,500 sq. metres total mapped footprint (Excluding 500 sq.m Pot Kharaba)."
+        "notes": "Area reconciled against revenue records."
       },
       "shareFraction": {
-        "value": "1/2 Share (Joint Co-parcener with Ramesh V. Deshmukh)",
-        "marathi": "१/२ समभाग (सह-हिस्सेदार रमेश विठ्ठलराव देशमुख)",
-        "confidence": 78,
-        "status": "Review Required",
-        "notes": "Please confirm: Detected 2 joint heirs in mutation entry No. 4412. Verify co-parcener share before approving undivided parcel transfer.",
-        "warning": true
+        "value": "Sole Occupancy (1/1 Full Share)",
+        "marathi": "१/१ पूर्ण हिस्सा",
+        "confidence": 95,
+        "status": "Verified",
+        "notes": "Single owner record verified."
       },
       "encumbrances": {
-        "value": "Bank of Maharashtra, Branch Hinjawadi - Charge Rs 15,00,000 (Agri Loan dated 12/03/2019)",
-        "marathi": "बँक ऑफ महाराष्ट्र शाखा हिंजवडी - बोजा रु. १५,००,००० (पीक कर्ज १२/०३/२०१९)",
-        "confidence": 74,
-        "status": "Moderate Confidence",
-        "notes": "Please confirm: Bank NOC status not found on CERSAI portal. Please confirm if loan is active or obtain No-Dues Certificate.",
-        "warning": true
+        "value": "Nil (All bank charges satisfied on CERSAI)",
+        "marathi": "कोणताही बोजा नाही",
+        "confidence": 90,
+        "status": "Verified",
+        "notes": "CERSAI search results reconciled."
       }
     }
   },
@@ -187,7 +447,7 @@
       "relation": "Daughter / Legal Coparcener",
       "aadhaarMasked": "•••• •••• 9928",
       "status": "Approved",
-      "timestamp": "Today, 11:20 AM",
+      "timestamp": "24 Oct 2024, 11:20 AM",
       "tokenId": "C-DAC#99281",
       "authMethod": "UIDAI OTP (Aadhaar Linked)",
       "objectionFiled": false
@@ -199,7 +459,7 @@
       "relation": "Son / Legal Co-parcener",
       "aadhaarMasked": "•••• •••• 4412",
       "status": "Approved",
-      "timestamp": "Yesterday, 03:15 PM",
+      "timestamp": "23 Oct 2024, 03:15 PM",
       "tokenId": "C-DAC#88120",
       "authMethod": "UIDAI OTP (Aadhaar Linked)",
       "objectionFiled": false
@@ -215,29 +475,61 @@
       "tokenId": "INV-PUN-9921",
       "authMethod": "SMS Link Dispatched",
       "objectionFiled": false
+    },
+    {
+      "id": "heir-4",
+      "parcelId": "p-142-3a",
+      "name": "Ramesh Vithalrao Deshmukh",
+      "relation": "Brother / Co-parcener",
+      "aadhaarMasked": "•••• •••• 4418",
+      "status": "Pending",
+      "timestamp": "Pending Heir Say",
+      "tokenId": "INV-MUL-4102",
+      "authMethod": "Notice Issued by Registrar",
+      "objectionFiled": true,
+      "objectionReason": "Special Civil Suit 842/2021 pending partition before Senior Civil Judge Pune"
     }
   ],
   "alerts": [
+    {
+      "id": "alt-1791533834733",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 301/2B",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-30159 • Status: NEEDS_OFFICER_REVIEW • Satya Score: 80/100",
+      "parcelId": "p-834693"
+    },
+    {
+      "id": "alt-1791533830073",
+      "type": "success",
+      "title": "Document Review Finalized: Survey No. 142/3A",
+      "time": "Just now",
+      "meta": "Audit fields verified and committed to case record.",
+      "parcelId": "p-142-3a"
+    },
     {
       "id": "alt-1",
       "type": "success",
       "title": "Heir Consent Request: Smt. Sunita Sharma approved mutation for Survey 89/1B",
       "time": "Today, 11:20 AM",
-      "meta": "Identity authenticated via UIDAI OTP (Aadhaar Linked) • Token ID: C-DAC#99281"
+      "meta": "Identity authenticated via UIDAI OTP (Aadhaar Linked) • Token ID: C-DAC#99281",
+      "parcelId": "p-89-1b"
     },
     {
       "id": "alt-2",
       "type": "error",
       "title": "New Mutation Notice detected: Gat 312 flagged for Section 84 enquiry by Sub-Divisional Officer",
       "time": "Yesterday, 04:45 PM",
-      "meta": "Notice Reference: SDO/KHED/MUT-2024/09 • Objection filing window expires in 14 days."
+      "meta": "Notice Reference: SDO/KHED/MUT-2024/09 • Objection filing window expires in 14 days.",
+      "parcelId": "p-312"
     },
     {
       "id": "alt-3",
       "type": "info",
       "title": "Automated Bank NOC verification completed for SBI Home Finance",
       "time": "2 days ago",
-      "meta": "Charge satisfaction registered on CERSAI portal • Zero encumbrance confirmed for Survey 142/3A."
+      "meta": "Charge satisfaction registered on CERSAI portal • Zero encumbrance confirmed for Survey 142/3A.",
+      "parcelId": "p-142-3a"
     }
   ],
   "officerQueue": [
@@ -249,7 +541,10 @@
       "taluka": "Mulshi",
       "applicant": "Suresh Vithalrao Deshmukh",
       "stage": "Registry Lock Escalation",
-      "blockTriggers": ["Canal Buffer (30m)", "Civil Suit Stay No. 842/2021"],
+      "blockTriggers": [
+        "Canal Buffer (30m)",
+        "Civil Suit Stay No. 842/2021"
+      ],
       "urgency": "High",
       "receivedDate": "24 Oct 2024",
       "status": "Pending Officer Review"
@@ -262,7 +557,9 @@
       "taluka": "Khed",
       "applicant": "Trustee Board Alandi",
       "stage": "Section 84 Eviction Notice",
-      "blockTriggers": ["Wakf Inam Transfer Prohibition"],
+      "blockTriggers": [
+        "Wakf Inam Transfer Prohibition"
+      ],
       "urgency": "Critical",
       "receivedDate": "22 Oct 2024",
       "status": "Notice Issued (Hearing in 14 Days)"
@@ -275,10 +572,82 @@
       "taluka": "Haveli",
       "applicant": "Dattatray Sharma",
       "stage": "Heir Consent Verification",
-      "blockTriggers": ["Pending 1 Heir Signatory"],
+      "blockTriggers": [
+        "Pending 1 Heir Signatory"
+      ],
       "urgency": "Medium",
       "receivedDate": "23 Oct 2024",
       "status": "Awaiting Consent Clearance"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "log-1791533834733-506",
+      "timestamp": "2026-10-09T08:17:14.733Z",
+      "parcelId": "p-834693",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Ananya Sharma)",
+      "notes": "Verification case CASE-2026-MH-30159 created with document Uploaded_712_Extract.pdf. Initial Satya score calculated: 80/100."
+    },
+    {
+      "id": "log-1791533830072-213",
+      "timestamp": "2026-10-09T08:17:10.072Z",
+      "parcelId": "p-142-3a",
+      "action": "EXTRACTION_CONFIRMED",
+      "actor": "Citizen / Auditor",
+      "notes": "Audit fields confirmed. Verification checks committed to case record."
+    },
+    {
+      "id": "log-1791533829960-429",
+      "timestamp": "2026-10-09T08:17:09.960Z",
+      "parcelId": "p-142-3a",
+      "action": "EXTRACTION_REVIEWED",
+      "actor": "Citizen / Auditor",
+      "notes": "Reviewed and corrected extracted fields. Document values synchronized to case record."
+    },
+    {
+      "id": "log-init-1",
+      "timestamp": "2024-10-24T05:58:00.000Z",
+      "parcelId": "p-142-3a",
+      "action": "DOCUMENT_UPLOADED",
+      "actor": "Citizen (Ananya Sharma)",
+      "notes": "Scanned 7/12 extract (MahaBhulekh_712_Hinjawadi_142_3A.pdf) submitted for verification."
+    },
+    {
+      "id": "log-init-2",
+      "timestamp": "2024-10-24T06:02:12.000Z",
+      "parcelId": "p-142-3a",
+      "action": "VERIFICATION_EVALUATED",
+      "actor": "DILRMP Rules Engine v4.2",
+      "notes": "8-Gate check executed: 2 BLOCK triggers identified (Civil Suit 842/2021 stay and Khadakwasla Canal 30m reservation buffer)."
+    },
+    {
+      "id": "log-init-3",
+      "timestamp": "2024-10-24T06:15:30.000Z",
+      "parcelId": "p-89-1b",
+      "action": "HEIR_CONSENT_SIGNED",
+      "actor": "Smt. Sunita Sharma",
+      "notes": "Executed registered digital consent deed via UIDAI OTP (C-DAC#99281)."
+    }
+  ],
+  "certificates": [
+    {
+      "certId": "CERT-BHU-P-89-1B-2024",
+      "parcelId": "p-89-1b",
+      "ulpin": "27-24-0014-0089-001B",
+      "surveyNo": "Survey No. 89/1B",
+      "issuedTo": "Dattatray Anant Sharma & Legal Heirs",
+      "village": "Village Wagholi",
+      "taluka": "Haveli",
+      "district": "Pune",
+      "areaHa": 0.85,
+      "issueDate": "24/10/2024",
+      "validUntil": "24/10/2025",
+      "issuerName": "Shri Rajeshwar Rao, IAS",
+      "issuerRole": "Divisional Commissioner / Revenue",
+      "certHash": "SHA256: 4f8b912a7e4c9b2d3801f92e01a88b19284c",
+      "status": "ISSUED",
+      "eligibilityNotes": "Passed all 8 verification gates without objection. Co-heir family consent deed verified."
     }
   ]
 }

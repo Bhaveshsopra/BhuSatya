@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { OfficerQueueItem, ActiveTab } from '../types';
+import { OfficerQueueItem, ActiveTab, Parcel } from '../types';
 
 interface RevenueOfficerQueueProps {
   queueItems: OfficerQueueItem[];
+  parcels?: Parcel[];
   onNavigateTab: (tab: ActiveTab, parcelId?: string) => void;
   onRefreshQueue: () => void;
+  onRefreshParcels?: () => void;
 }
 
 export const RevenueOfficerQueue: React.FC<RevenueOfficerQueueProps> = ({
   queueItems,
+  parcels = [],
   onNavigateTab,
   onRefreshQueue,
+  onRefreshParcels,
 }) => {
   const [filterUrgency, setFilterUrgency] = useState<string>('all');
   const [selectedCase, setSelectedCase] = useState<OfficerQueueItem | null>(null);
@@ -22,7 +26,7 @@ export const RevenueOfficerQueue: React.FC<RevenueOfficerQueueProps> = ({
     return item.urgency.toLowerCase() === filterUrgency.toLowerCase();
   });
 
-  const handleCaseAction = async (caseId: string, action: 'approve' | 'reject' | 'hearing') => {
+  const handleCaseAction = async (caseId: string, action: 'approve' | 'reject' | 'hearing' | 'request_info') => {
     try {
       const res = await fetch(`/api/officer-queue/${caseId}/action`, {
         method: 'POST',
@@ -31,10 +35,11 @@ export const RevenueOfficerQueue: React.FC<RevenueOfficerQueueProps> = ({
       });
       const data = await res.json();
       if (data.success) {
-        setStatusMsg(`✓ Case ${caseId} action recorded on Revenue Ledger!`);
+        setStatusMsg(`✓ Case ${caseId} decision recorded on Revenue Ledger!`);
         setSelectedCase(null);
         setActionNotes('');
         onRefreshQueue();
+        onRefreshParcels?.();
         setTimeout(() => setStatusMsg(null), 3000);
       }
     } catch (err) {
@@ -198,6 +203,13 @@ export const RevenueOfficerQueue: React.FC<RevenueOfficerQueueProps> = ({
                 className="px-3 py-1.5 bg-[#f2f3ff] text-xs font-semibold rounded-lg text-[#404941]"
               >
                 Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCaseAction(selectedCase.id, 'request_info')}
+                className="px-3 py-1.5 bg-sky-700 text-white text-xs font-bold rounded-lg hover:bg-sky-800"
+              >
+                Request Additional Documents
               </button>
               <button
                 type="button"

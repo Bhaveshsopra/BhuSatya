@@ -1,18 +1,49 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Parcel, ActiveTab, Language } from '../types';
 
 interface ShouldIBuyThisReportProps {
   parcel: Parcel;
+  parcels?: Parcel[];
+  onSelectParcel?: (id: string) => void;
   onNavigateTab: (tab: ActiveTab, parcelId?: string) => void;
 }
 
 export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
   parcel,
+  parcels = [],
+  onSelectParcel,
   onNavigateTab,
 }) => {
   const [reportLang, setReportLang] = useState<Language>('EN');
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [pdfDownloaded, setPdfDownloaded] = useState(false);
+  const [reportDocket, setReportDocket] = useState<any>(null);
+
+  useEffect(() => {
+    fetch(`/api/reports/${parcel.id}`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success && res.data) {
+          setReportDocket(res.data);
+        }
+      })
+      .catch(console.error);
+  }, [parcel.id]);
+
+  const handleExportJSON = () => {
+    const payload = reportDocket || {
+      parcel,
+      exportTimestamp: new Date().toISOString(),
+      protocol: 'BhuSatya DILRMP Title Diligence v4.2',
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `BhuSatya_Diligence_Docket_${parcel.ulpin}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const isMarathi = reportLang === 'MR';
   const isHindi = reportLang === 'HI';
@@ -105,6 +136,25 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
               </span>
               <span className="text-[#c0c9be]">|</span>
               <span className="text-[#717970]">Generated: 24 Oct 2024, 14:32 IST</span>
+              {parcels.length > 1 && (
+                <>
+                  <span className="text-[#c0c9be]">|</span>
+                  <div className="inline-flex items-center gap-1.5 bg-[#f2f3ff] px-2 py-0.5 rounded border border-[#c0c9be]/60">
+                    <span className="text-[11px] font-semibold text-[#717970]">Report For:</span>
+                    <select
+                      value={parcel.id}
+                      onChange={(e) => onSelectParcel?.(e.target.value)}
+                      className="bg-transparent font-bold text-[#003b1b] text-xs focus:outline-none cursor-pointer"
+                    >
+                      {parcels.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.surveyNo} – {p.village}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -653,11 +703,20 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
+          <button
+            type="button"
+            onClick={handleExportJSON}
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-[#003b1b] text-xs font-semibold shadow-2xs border border-[#c0c9be]/60 hover:bg-[#f2f3ff] transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">data_object</span>
+            <span>Export JSON Docket</span>
+          </button>
+
           <button
             type="button"
             onClick={handleShare}
-            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-white text-[#131b2e] text-xs font-semibold shadow-2xs border border-[#c0c9be]/60 hover:bg-[#f2f3ff] transition-colors"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-white text-[#131b2e] text-xs font-semibold shadow-2xs border border-[#c0c9be]/60 hover:bg-[#f2f3ff] transition-colors"
           >
             <span className="material-symbols-outlined text-[18px]">share</span>
             <span>Share with Advocate / Bank</span>
@@ -674,7 +733,7 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
             >
               download
             </span>
-            <span>{pdfDownloaded ? 'Generating PDF...' : 'Download Certified PDF (SHA-256)'}</span>
+            <span>{pdfDownloaded ? 'Generating PDF...' : 'Print / Save PDF (SHA-256)'}</span>
           </button>
         </div>
       </section>

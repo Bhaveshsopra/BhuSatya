@@ -9,8 +9,37 @@ export type ActiveTab =
   | 'certificate-and-verifier'
   | 'revenue-officer-queue';
 
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  parcelId: string;
+  action: string;
+  actor: string;
+  notes: string;
+}
+
+export interface StoredCertificate {
+  certId: string;
+  parcelId: string;
+  ulpin: string;
+  surveyNo: string;
+  issuedTo: string;
+  village: string;
+  taluka: string;
+  district: string;
+  areaHa: number;
+  issueDate: string;
+  validUntil: string;
+  issuerName: string;
+  issuerRole: string;
+  certHash: string;
+  status: 'ISSUED' | 'REVOKED';
+  eligibilityNotes: string;
+}
+
 export interface Parcel {
   id: string;
+  caseNo?: string;
   surveyNo: string;
   gatNo: string;
   ulpin: string;
@@ -27,6 +56,9 @@ export interface Parcel {
   diligenceScore: number;
   status: string;
   registrationStatus: string;
+  caseStatus: 'PENDING_REVIEW' | 'VERIFICATION_IN_PROGRESS' | 'NEEDS_OFFICER_REVIEW' | 'OFFICER_SANCTIONED' | 'TITLE_VERIFIED' | 'REGISTRATION_FROZEN' | 'ADDITIONAL_INFO_REQUESTED';
+  recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information';
+  recommendationExplanation: string;
   tags: string[];
   verifiedDate: string;
   encumbrance: string;
@@ -38,6 +70,13 @@ export interface Parcel {
   stampDuty: number;
   dgpsSurveyDate: string;
   tilrAuthority: string;
+  documentMeta?: {
+    fileName: string;
+    fileSize: string;
+    fileType: string;
+    uploadedAt: string;
+    source: string;
+  };
   gates: Array<{
     id: number;
     name: string;
@@ -52,10 +91,13 @@ export interface Parcel {
     orderDate: string;
     status: 'Approved' | 'Escalated';
   } | null;
+  officerRemarks?: string;
+  hearingDate?: string;
 }
 
 export interface ExtractionData {
   docRef: string;
+  parcelId: string;
   source: string;
   engine: string;
   quality: string;
@@ -92,6 +134,7 @@ export interface AlertItem {
   title: string;
   time: string;
   meta: string;
+  parcelId?: string;
 }
 
 export interface OfficerQueueItem {
@@ -106,4 +149,5 @@ export interface OfficerQueueItem {
   urgency: 'Low' | 'Medium' | 'High' | 'Critical';
   receivedDate: string;
   status: string;
+  actionNotes?: string;
 }

@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { Parcel, AlertItem, ActiveTab } from '../types';
+import { Parcel, AlertItem, ActiveTab, AuditLogEntry } from '../types';
 
 interface CitizenDashboardProps {
   parcels: Parcel[];
   alerts: AlertItem[];
+  selectedParcelId: string;
+  onSelectParcel: (id: string) => void;
   onNavigateTab: (tab: ActiveTab, parcelId?: string) => void;
   onOpenCheckModal: () => void;
   onUploadSuccess: (newParcel: Parcel) => void;
@@ -12,6 +14,8 @@ interface CitizenDashboardProps {
 export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   parcels,
   alerts,
+  selectedParcelId,
+  onSelectParcel,
   onNavigateTab,
   onOpenCheckModal,
   onUploadSuccess,
@@ -20,24 +24,71 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [selectedState, setSelectedState] = useState('mh');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(true);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+
+  // Verification request form state
+  const [reqSurveyNo, setReqSurveyNo] = useState('');
+  const [reqVillage, setReqVillage] = useState('Mouje Hinjawadi');
+  const [reqTaluka, setReqTaluka] = useState('Mulshi');
+  const [reqAreaHa, setReqAreaHa] = useState('1.35');
+  const [reqOwnerName, setReqOwnerName] = useState('Ananya Sharma');
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter parcels
   const filteredParcels = parcels.filter((parcel) => {
     if (filter === 'all') return true;
-    if (filter === 'verified') return parcel.status.includes('PASS') || parcel.score >= 85;
-    if (filter === 'pending') return parcel.status.includes('WARN') || (parcel.score >= 50 && parcel.score < 85);
-    if (filter === 'attention') return parcel.status.includes('BLOCK') || parcel.score < 50;
+    if (filter === 'verified') {
+      return parcel.recommendation === 'Pass' || parcel.caseStatus === 'OFFICER_SANCTIONED' || parcel.caseStatus === 'TITLE_VERIFIED';
+    }
+    if (filter === 'pending') {
+      return parcel.recommendation === 'Needs Review' && parcel.caseStatus !== 'REGISTRATION_FROZEN';
+    }
+    if (filter === 'attention') {
+      return parcel.caseStatus === 'REGISTRATION_FROZEN' || parcel.status.includes('BLOCK') || parcel.score < 50;
+    }
     return true;
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate size (max 25MB)
+    const MAX_SIZE = 25 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setErrorMessage(`File "${file.name}" is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed is 25MB.`);
+      return;
+    }
+
+    // Validate format
+    const validExts = ['.pdf', '.png', '.jpg', '.jpeg', '.tiff'];
+    const fileNameLower = file.name.toLowerCase();
+    const hasValidExt = validExts.some((ext) => fileNameLower.endsWith(ext));
+    if (!hasValidExt) {
+      setErrorMessage(`Unsupported format for "${file.name}". Please upload PDF, PNG, JPG, or TIFF.`);
+      return;
+    }
+
+    setErrorMessage(null);
+    setSelectedFileName(file.name);
+    setSelectedFileSize(file.size);
+    if (!reqSurveyNo) {
+      setReqSurveyNo(`Survey No. ${Math.floor(Math.random() * 150 + 50)}/${Math.floor(Math.random() * 4 + 1)}`);
+    }
+    setShowRequestModal(true);
+  };
+
+  const submitVerificationRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsUploading(true);
-    setUploadMessage('Scanning document via OCR-VGG & Indic-BERT v4...');
+    setUploadMessage('Processing document via Demonstration Extraction Pipeline & evaluating 8 gates...');
 
     try {
       const response = await fetch('/api/parcels/upload', {
@@ -45,28 +96,33 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           stateAuthority: selectedState,
-          fileName: file.name,
-          source: 'Uploaded Scanned 7/12',
-          surveyNo: `Survey No. ${Math.floor(Math.random() * 150 + 50)}/${Math.floor(Math.random() * 4 + 1)}`,
-          village: 'Mouje Hinjawadi',
-          taluka: 'Mulshi',
-          ownerName: 'Ananya Sharma',
-          areaHa: 1.15,
+          fileName: selectedFileName || 'Scanned_712_RoR.pdf',
+          fileSize: selectedFileSize || 2100000,
+          fileType: selectedFileName?.endsWith('.png') ? 'image/png' : 'application/pdf',
+          source: 'Citizen Upload & OCR',
+          surveyNo: reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`,
+          village: reqVillage,
+          taluka: reqTaluka,
+          ownerName: reqOwnerName,
+          areaHa: parseFloat(reqAreaHa) || 1.35,
         }),
       });
 
       const res = await response.json();
       if (res.success) {
-        setUploadMessage('✓ Title parameters verified! Added to registered portfolio.');
+        setUploadMessage('✓ Verification case created! Results recorded to portfolio.');
         onUploadSuccess(res.data);
+        setShowRequestModal(false);
         setTimeout(() => {
           setUploadMessage(null);
-          onNavigateTab('extract-and-review');
+          onNavigateTab('extract-and-review', res.data.id);
         }, 1200);
+      } else {
+        setErrorMessage(res.error || 'Upload failed.');
       }
     } catch (err) {
       console.error(err);
-      setUploadMessage('Upload failed, please retry.');
+      setErrorMessage('Server error while submitting request.');
     } finally {
       setIsUploading(false);
     }
@@ -83,6 +139,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         body: JSON.stringify({
           stateAuthority: selectedState,
           fileName: 'DigiLocker_Direct_Sync_712.pdf',
+          fileSize: 1800000,
+          fileType: 'application/pdf',
           source: 'DigiLocker Direct Verified Pull',
           surveyNo: 'Survey No. 204/1',
           village: 'Baner',
@@ -98,7 +156,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         onUploadSuccess(res.data);
         setTimeout(() => {
           setUploadMessage(null);
-          onNavigateTab('extract-and-review');
+          onNavigateTab('extract-and-review', res.data.id);
         }, 1200);
       }
     } catch (err) {
@@ -109,13 +167,26 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
   };
 
+  const loadAuditHistory = async () => {
+    try {
+      const res = await fetch('/api/audit-logs');
+      const data = await res.json();
+      if (data.success) {
+        setAuditLogs(data.data);
+        setShowAuditModal(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Hidden File Input */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileUpload}
+        onChange={handleFileSelected}
         accept=".pdf,.png,.jpg,.jpeg,.tiff"
         className="hidden"
       />
@@ -141,6 +212,13 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
+              onClick={loadAuditHistory}
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#f2f3ff] text-[#003b1b] border border-[#c0c9be]/60 hover:bg-[#eaedff] rounded-lg text-xs font-semibold shadow-2xs transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">history</span>
+              <span>Audit Trail</span>
+            </button>
+            <button
               onClick={onOpenCheckModal}
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#003b1b] text-white rounded-lg text-sm font-semibold hover:bg-[#14532d] shadow-xs hover:shadow transition-all group"
             >
@@ -153,7 +231,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         </div>
       </section>
 
-      {/* Two-Column Primary Layout (40% Upload & Guidance / 60% Registered Parcels) */}
+      {errorMessage && (
+        <div className="p-3 bg-[#ffdad6] text-[#ba1a1a] rounded-xl border border-[#ba1a1a]/30 text-xs font-semibold flex items-center justify-between">
+          <span>{errorMessage}</span>
+          <button onClick={() => setErrorMessage(null)} className="text-xs underline">Dismiss</button>
+        </div>
+      )}
+
+      {/* Two-Column Primary Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: 40% (lg:col-span-5) */}
         <div className="lg:col-span-5 space-y-5">
@@ -204,7 +289,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 Drop PDF, Scanned TIFF, or JPG here
               </p>
               <p className="text-xs text-[#717970] mb-4">
-                Maximum file size 25MB • OCR & Watermark detection enabled
+                Maximum file size 25MB • Demonstration OCR & Watermark Pipeline
               </p>
 
               {uploadMessage ? (
@@ -276,7 +361,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
             <div className="space-y-1">
               <h3 className="text-xs font-bold text-[#131b2e] uppercase tracking-wider">Cognitive Diligence Engine</h3>
               <p className="text-xs text-[#404941] leading-relaxed">
-                AI checks extract <strong className="text-[#131b2e] font-semibold">42 legal parameters</strong> including mutation entries (<span className="font-medium text-[#003b1b]">फेरफार</span>), court stays, and encumbrances within <strong>12 seconds</strong>.
+                Demonstration rules engine extracts <strong className="text-[#131b2e] font-semibold">42 legal parameters</strong> including mutation entries (<span className="font-medium text-[#003b1b]">फेरफार</span>), court stays, and encumbrances.
               </p>
             </div>
           </div>
@@ -288,7 +373,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-[#c0c9be]/40">
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-[#131b2e]">My Registered Parcels</h2>
+                <h2 className="text-lg font-bold text-[#131b2e]">My Registered Parcels & Cases</h2>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-[#eaedff] text-[#131b2e]">
                   {filteredParcels.length} Active
                 </span>
@@ -347,17 +432,25 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           {/* Parcel Cards Container */}
           <div className="space-y-3.5">
             {filteredParcels.map((parcel) => {
-              const isPass = parcel.status.includes('PASS');
-              const isWarn = parcel.status.includes('WARN');
-              const isBlock = parcel.status.includes('BLOCK');
+              const isSelected = parcel.id === selectedParcelId;
+              const isPass = parcel.recommendation === 'Pass' || parcel.caseStatus === 'OFFICER_SANCTIONED' || parcel.caseStatus === 'TITLE_VERIFIED';
+              const isFrozen = parcel.caseStatus === 'REGISTRATION_FROZEN';
+              const isWarn = !isPass && !isFrozen;
 
               const strokeColor = isPass ? '#006d30' : isWarn ? '#f59e0b' : '#ba1a1a';
-              const cardBorderHover = isPass ? 'hover:border-[#006d30]/50' : isWarn ? 'hover:border-amber-400' : 'hover:border-[#ba1a1a]/40';
+              const cardBorder = isSelected
+                ? 'ring-2 ring-[#003b1b] border-[#003b1b]'
+                : isPass
+                ? 'hover:border-[#006d30]/50'
+                : isWarn
+                ? 'hover:border-amber-400'
+                : 'hover:border-[#ba1a1a]/40';
 
               return (
                 <div
                   key={parcel.id}
-                  className={`bg-white border border-[#c0c9be]/60 rounded-xl p-4.5 shadow-xs ${cardBorderHover} transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4`}
+                  onClick={() => onSelectParcel(parcel.id)}
+                  className={`bg-white border border-[#c0c9be]/60 rounded-xl p-4.5 shadow-xs ${cardBorder} transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 cursor-pointer`}
                 >
                   <div className="flex items-start gap-4 flex-1">
                     {/* Score Ring Widget */}
@@ -388,6 +481,11 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                     <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-sm font-bold text-[#131b2e] truncate">{parcel.surveyNo}</h3>
+                        {parcel.caseNo && (
+                          <span className="font-mono text-[10px] bg-[#eaedff] text-[#003b1b] px-1.5 py-0.5 rounded">
+                            {parcel.caseNo}
+                          </span>
+                        )}
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
                             isPass
@@ -400,14 +498,14 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <span className="material-symbols-outlined text-[12px]">
                             {isPass ? 'check_circle' : isWarn ? 'warning' : 'block'}
                           </span>
-                          {parcel.status}
+                          {parcel.recommendation} • {parcel.registrationStatus}
                         </span>
                       </div>
                       <p className="text-xs text-[#717970] truncate">
                         {parcel.village}, Taluka {parcel.taluka}, {parcel.district}, {parcel.state}
                       </p>
                       <div className="text-xs text-[#404941] font-medium">
-                        Area: <span className="font-semibold text-[#131b2e]">{parcel.areaHa} Hectares</span> ({parcel.areaAcres} Acres)
+                        Area: <span className="font-semibold text-[#131b2e]">{parcel.areaHa} Hectares</span> ({parcel.areaAcres} Acres) • Owner: {parcel.primaryOwner}
                       </div>
 
                       {/* Tags */}
@@ -416,7 +514,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                           <span
                             key={idx}
                             className={`text-[11px] px-2 py-0.5 rounded border ${
-                              isBlock && idx === 0
+                              isFrozen && idx === 0
                                 ? 'bg-[#ffdad6]/60 text-[#ba1a1a] border-[#ba1a1a]/20 font-medium'
                                 : isWarn && idx === 0
                                 ? 'bg-amber-50 text-amber-900 border-amber-200'
@@ -431,32 +529,29 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                   </div>
 
                   {/* Action Button */}
-                  <div className="w-full sm:w-auto shrink-0 pt-2 sm:pt-0">
-                    {isPass ? (
-                      <button
-                        onClick={() => onNavigateTab('parcel-check-and-red-flag-gate', parcel.id)}
-                        className="w-full sm:w-auto px-3.5 py-2 bg-[#f2f3ff] hover:bg-[#eaedff] border border-[#c0c9be]/80 text-[#003b1b] text-xs font-semibold rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-1"
-                      >
-                        <span>View Full Dossier</span>
-                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                      </button>
-                    ) : isWarn ? (
-                      <button
-                        onClick={() => onNavigateTab('heir-consent-tracker', parcel.id)}
-                        className="w-full sm:w-auto px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-1"
-                      >
-                        <span>Track Consent</span>
-                        <span className="material-symbols-outlined text-xs">how_to_reg</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => onNavigateTab('parcel-check-and-red-flag-gate', parcel.id)}
-                        className="w-full sm:w-auto px-3.5 py-2 bg-[#ba1a1a] text-white hover:bg-[#ba1a1a]/90 text-xs font-semibold rounded-lg shadow-2xs transition-colors flex items-center justify-center gap-1"
-                      >
-                        <span>Resolve Dispute</span>
-                        <span className="material-symbols-outlined text-xs">gavel</span>
-                      </button>
-                    )}
+                  <div className="w-full sm:w-auto shrink-0 pt-2 sm:pt-0 flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectParcel(parcel.id);
+                        onNavigateTab('parcel-check-and-red-flag-gate', parcel.id);
+                      }}
+                      className="px-3 py-1.5 bg-[#f2f3ff] hover:bg-[#eaedff] border border-[#c0c9be]/80 text-[#003b1b] text-xs font-semibold rounded-lg shadow-2xs transition-colors flex items-center gap-1"
+                    >
+                      <span>Inspect</span>
+                      <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectParcel(parcel.id);
+                        onNavigateTab('should-i-buy-this-report', parcel.id);
+                      }}
+                      className="px-3 py-1.5 bg-[#003b1b] hover:bg-[#14532d] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors flex items-center gap-1"
+                    >
+                      <span>Report</span>
+                      <span className="material-symbols-outlined text-xs">description</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -473,9 +568,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               <span className="material-symbols-outlined text-xl">history</span>
             </div>
             <div>
-              <h2 className="text-sm font-bold text-[#131b2e]">Recent Real-time Alerts & Consent Activity</h2>
+              <h2 className="text-sm font-bold text-[#131b2e]">Recent Real-time Alerts & Activity</h2>
               <p className="text-xs text-[#717970]">
-                Synchronized directly with District Land Registrar and High Court e-Filing nodes
+                Connected to District Land Registrar and High Court e-Filing nodes
               </p>
             </div>
           </div>
@@ -527,6 +622,153 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         </div>
       </section>
 
+      {/* Verification Request Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#c0c9be]/60 space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#c0c9be]/30">
+              <h3 className="text-sm font-bold text-[#131b2e] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#003b1b]">add_task</span>
+                Create Verification Case Request
+              </h3>
+              <button onClick={() => setShowRequestModal(false)} className="text-[#717970] hover:text-[#131b2e]">
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            <div className="p-3 bg-[#f2f3ff] rounded-lg text-xs text-[#404941]">
+              Attached File: <strong className="text-[#131b2e]">{selectedFileName}</strong>{' '}
+              {selectedFileSize && `(${(selectedFileSize / (1024 * 1024)).toFixed(1)} MB)`}
+            </div>
+
+            <form onSubmit={submitVerificationRequest} className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Survey / Gat No.</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqSurveyNo}
+                    onChange={(e) => setReqSurveyNo(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Land Extent (Ha)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={reqAreaHa}
+                    onChange={(e) => setReqAreaHa(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Village</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqVillage}
+                    onChange={(e) => setReqVillage(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Taluka</label>
+                  <input
+                    type="text"
+                    required
+                    value={reqTaluka}
+                    onChange={(e) => setReqTaluka(e.target.value)}
+                    className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Primary Titleholder / Khatedar</label>
+                <input
+                  type="text"
+                  required
+                  value={reqOwnerName}
+                  onChange={(e) => setReqOwnerName(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-[#c0c9be]/30">
+                <button
+                  type="button"
+                  onClick={() => setShowRequestModal(false)}
+                  className="px-3 py-1.5 bg-[#f2f3ff] rounded-lg text-xs font-semibold text-[#404941]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUploading}
+                  className="px-4 py-1.5 bg-[#003b1b] text-white rounded-lg text-xs font-bold hover:bg-[#14532d]"
+                >
+                  {isUploading ? 'Registering...' : 'Submit Verification Case'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Audit Trail Modal */}
+      {showAuditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-[#c0c9be]/60 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-[#c0c9be]/30">
+              <h3 className="text-sm font-bold text-[#131b2e] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#003b1b]">history</span>
+                BhuSatya Sovereign Case Audit Trail
+              </h3>
+              <button onClick={() => setShowAuditModal(false)} className="text-[#717970] hover:text-[#131b2e]">
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+            <p className="text-xs text-[#717970]">
+              Chronological log of case creation, verification checks, heir consent deeds, and officer decisions.
+            </p>
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 text-xs">
+              {auditLogs.length === 0 ? (
+                <p className="text-[#717970] text-center py-4">No audit events logged yet.</p>
+              ) : (
+                auditLogs.map((log) => (
+                  <div key={log.id} className="p-3 bg-[#f2f3ff] rounded-xl border border-[#c0c9be]/40 space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="font-mono font-bold text-[11px] text-[#003b1b] bg-white px-2 py-0.5 rounded border border-[#c0c9be]/40">
+                        {log.action}
+                      </span>
+                      <span className="text-[10px] text-[#717970]">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-[#131b2e] font-medium">{log.notes}</p>
+                    <p className="text-[10px] text-[#717970]">Actor: {log.actor}</p>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="flex justify-end pt-2 border-t border-[#c0c9be]/30">
+              <button
+                onClick={() => setShowAuditModal(false)}
+                className="px-4 py-1.5 bg-[#003b1b] text-white text-xs font-bold rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Bottom Verification Toast Notification */}
       {showToast && (
         <aside className="fixed bottom-5 right-5 z-50 max-w-sm w-full transition-all animate-bounce-subtle pointer-events-auto">
@@ -541,8 +783,8 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold tracking-tight">Digital Signature Verified</p>
-                <p className="text-[11px] text-[#dae2fd]/80">Secured with C-DAC eSign 2.1 PKI</p>
+                <p className="text-xs font-bold tracking-tight">Active Case Synchronized</p>
+                <p className="text-[11px] text-[#dae2fd]/80">Secured with NIC DILRMP Verification Engine</p>
               </div>
             </div>
             <button

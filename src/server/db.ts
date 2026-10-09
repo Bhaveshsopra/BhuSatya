@@ -3,8 +3,37 @@ import path from 'path';
 
 const DB_PATH = path.resolve(process.cwd(), 'data', 'bhusatya_db.json');
 
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  parcelId: string;
+  action: string;
+  actor: string;
+  notes: string;
+}
+
+export interface StoredCertificate {
+  certId: string;
+  parcelId: string;
+  ulpin: string;
+  surveyNo: string;
+  issuedTo: string;
+  village: string;
+  taluka: string;
+  district: string;
+  areaHa: number;
+  issueDate: string;
+  validUntil: string;
+  issuerName: string;
+  issuerRole: string;
+  certHash: string;
+  status: 'ISSUED' | 'REVOKED';
+  eligibilityNotes: string;
+}
+
 export interface Parcel {
   id: string;
+  caseNo?: string;
   surveyNo: string;
   gatNo: string;
   ulpin: string;
@@ -21,6 +50,9 @@ export interface Parcel {
   diligenceScore: number;
   status: string;
   registrationStatus: string;
+  caseStatus: 'PENDING_REVIEW' | 'VERIFICATION_IN_PROGRESS' | 'NEEDS_OFFICER_REVIEW' | 'OFFICER_SANCTIONED' | 'TITLE_VERIFIED' | 'REGISTRATION_FROZEN' | 'ADDITIONAL_INFO_REQUESTED';
+  recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information';
+  recommendationExplanation: string;
   tags: string[];
   verifiedDate: string;
   encumbrance: string;
@@ -32,6 +64,13 @@ export interface Parcel {
   stampDuty: number;
   dgpsSurveyDate: string;
   tilrAuthority: string;
+  documentMeta?: {
+    fileName: string;
+    fileSize: string;
+    fileType: string;
+    uploadedAt: string;
+    source: string;
+  };
   gates: Array<{
     id: number;
     name: string;
@@ -46,10 +85,13 @@ export interface Parcel {
     orderDate: string;
     status: 'Approved' | 'Escalated';
   } | null;
+  officerRemarks?: string;
+  hearingDate?: string;
 }
 
 export interface ExtractionData {
   docRef: string;
+  parcelId: string;
   source: string;
   engine: string;
   quality: string;
@@ -86,6 +128,7 @@ export interface AlertItem {
   title: string;
   time: string;
   meta: string;
+  parcelId?: string;
 }
 
 export interface OfficerQueueItem {
@@ -100,6 +143,7 @@ export interface OfficerQueueItem {
   urgency: 'Low' | 'Medium' | 'High' | 'Critical';
   receivedDate: string;
   status: string;
+  actionNotes?: string;
 }
 
 export interface DatabaseSchema {
@@ -108,24 +152,30 @@ export interface DatabaseSchema {
   heirConsents: HeirConsent[];
   alerts: AlertItem[];
   officerQueue: OfficerQueueItem[];
+  auditLogs: AuditLogEntry[];
+  certificates: StoredCertificate[];
 }
 
 function getDatabase(): DatabaseSchema {
   try {
     if (fs.existsSync(DB_PATH)) {
       const data = fs.readFileSync(DB_PATH, 'utf-8');
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (!parsed.auditLogs) parsed.auditLogs = [];
+      if (!parsed.certificates) parsed.certificates = [];
+      return parsed;
     }
   } catch (err) {
     console.error('Error reading database file:', err);
   }
-  // Fallback return empty shell
   return {
     parcels: [],
     extraction: {} as any,
     heirConsents: [],
     alerts: [],
     officerQueue: [],
+    auditLogs: [],
+    certificates: [],
   };
 }
 
@@ -143,7 +193,8 @@ export const db = {
   save: saveDatabase,
 
   getParcels: () => getDatabase().parcels,
-  getParcelById: (id: string) => getDatabase().parcels.find((p) => p.id === id || p.ulpin === id || p.surveyNo.includes(id)),
+  getParcelById: (id: string) =>
+    getDatabase().parcels.find((p) => p.id === id || p.ulpin === id || p.surveyNo.includes(id)),
   updateParcel: (id: string, updates: Partial<Parcel>) => {
     const data = getDatabase();
     const idx = data.parcels.findIndex((p) => p.id === id);
@@ -215,5 +266,49 @@ export const db = {
       return data.officerQueue[idx];
     }
     return null;
+  },
+
+  getAuditLogs: (parcelId?: string) => {
+    const data = getDatabase();
+    if (parcelId) {
+      return data.auditLogs.filter((log) => log.parcelId === parcelId);
+    }
+    return data.auditLogs;
+  },
+  addAuditLog: (entry: Omit<AuditLogEntry, 'id' | 'timestamp'>) => {
+    const data = getDatabase();
+    const newLog: AuditLogEntry = {
+      id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      ...entry,
+    };
+    data.auditLogs.unshift(newLog);
+    saveDatabase(data);
+    return newLog;
+  },
+
+  getCertificates: () => getDatabase().certificates,
+  getCertificateByParcelId: (parcelId: string) => {
+    const data = getDatabase();
+    return data.certificates.find((c) => c.parcelId === parcelId && c.status === 'ISSUED');
+  },
+  getCertificateByQuery: (query: string) => {
+    const data = getDatabase();
+    const q = query.trim().toLowerCase();
+    return data.certificates.find(
+      (c) =>
+        c.certId.toLowerCase() === q ||
+        c.ulpin.toLowerCase() === q ||
+        c.certHash.toLowerCase().includes(q) ||
+        c.surveyNo.toLowerCase().includes(q)
+    );
+  },
+  issueCertificate: (cert: StoredCertificate) => {
+    const data = getDatabase();
+    // remove any older certificate for the same parcel
+    data.certificates = data.certificates.filter((c) => c.parcelId !== cert.parcelId);
+    data.certificates.unshift(cert);
+    saveDatabase(data);
+    return cert;
   },
 };

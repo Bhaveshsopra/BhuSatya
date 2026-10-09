@@ -76,6 +76,16 @@ export default function App() {
     }
   };
 
+  const refreshParcels = async () => {
+    try {
+      const pRes = await fetch('/api/parcels');
+      const pData = await pRes.json();
+      if (pData.success) setParcels(pData.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleNavigate = (tab: ActiveTab, parcelId?: string) => {
     if (parcelId) setSelectedParcelId(parcelId);
     setActiveTab(tab);
@@ -124,6 +134,8 @@ export default function App() {
           <CitizenDashboard
             parcels={parcels}
             alerts={alerts}
+            selectedParcelId={selectedParcelId}
+            onSelectParcel={setSelectedParcelId}
             onNavigateTab={handleNavigate}
             onOpenCheckModal={() => setCheckModalOpen(true)}
             onUploadSuccess={handleNewParcelUploaded}
@@ -133,42 +145,64 @@ export default function App() {
         {activeTab === 'extract-and-review' && extraction && (
           <ExtractAndReview
             initialExtraction={extraction}
+            selectedParcel={currentParcel}
+            parcels={parcels}
+            onSelectParcel={setSelectedParcelId}
             onNavigateTab={handleNavigate}
+            onUpdateParcel={handleUpdateParcel}
+            onRefreshParcels={refreshParcels}
           />
         )}
 
         {activeTab === 'parcel-check-and-red-flag-gate' && currentParcel.id && (
           <ParcelCheckAndRedFlagGate
             parcel={currentParcel}
+            parcels={parcels}
+            onSelectParcel={setSelectedParcelId}
             onNavigateTab={handleNavigate}
             onUpdateParcel={handleUpdateParcel}
+            onRefreshParcels={refreshParcels}
           />
         )}
 
         {activeTab === 'heir-consent-tracker' && (
           <HeirConsentTracker
             consents={consents}
+            parcels={parcels}
+            selectedParcelId={selectedParcelId}
+            onSelectParcel={setSelectedParcelId}
             onNavigateTab={handleNavigate}
             onRefreshConsents={refreshConsents}
+            onRefreshParcels={refreshParcels}
           />
         )}
 
         {activeTab === 'should-i-buy-this-report' && currentParcel.id && (
           <ShouldIBuyThisReport
             parcel={currentParcel}
+            parcels={parcels}
+            onSelectParcel={setSelectedParcelId}
             onNavigateTab={handleNavigate}
           />
         )}
 
         {activeTab === 'certificate-and-verifier' && currentParcel.id && (
-          <CertificateAndVerifier parcel={currentParcel} />
+          <CertificateAndVerifier
+            parcel={currentParcel}
+            parcels={parcels}
+            onSelectParcel={setSelectedParcelId}
+            onNavigateTab={handleNavigate}
+            onRefreshParcel={refreshParcels}
+          />
         )}
 
         {activeTab === 'revenue-officer-queue' && (
           <RevenueOfficerQueue
             queueItems={queueItems}
+            parcels={parcels}
             onNavigateTab={handleNavigate}
             onRefreshQueue={refreshQueue}
+            onRefreshParcels={refreshParcels}
           />
         )}
       </main>
