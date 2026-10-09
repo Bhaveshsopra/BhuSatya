@@ -13,7 +13,7 @@ import {
 } from './src/server/documentClassifier.ts';
 
 // Deterministic SHA-256 canonical hash computation for title certificates
-function computeCanonicalCertHash(certData: {
+export function computeCanonicalCertHash(certData: {
   certId: string;
   parcelId: string;
   ulpin: string;
@@ -441,6 +441,9 @@ app.post('/api/parcels/upload', (req, res) => {
         classification,
       });
     } catch (err: any) {
+      if (req.file?.path) {
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
+      }
       console.error('Error handling parcel upload:', err);
       res.status(500).json({ success: false, error: err.message || 'Server error processing upload.' });
     }
@@ -565,7 +568,70 @@ app.get('/api/extraction', (req, res) => {
 app.put('/api/extraction', (req, res) => {
   const updates = req.body;
   const current = db.getExtraction();
-  const updated = db.updateExtraction(updates);
+
+  // Initialize originalFields if not yet captured
+  const originalFields = current.originalFields || {
+    primaryOwner: current.fields.primaryOwner?.value || '',
+    surveyNumber: current.fields.surveyNumber?.value || '',
+    subDivision: current.fields.subDivision?.value || '',
+    totalArea: current.fields.totalArea?.value || '',
+    shareFraction: current.fields.shareFraction?.value || '',
+    encumbrances: current.fields.encumbrances?.value || '',
+  };
+
+  const corrections: Record<string, { original: string; corrected: string; timestamp: string }> = {
+    ...(current.corrections || {}),
+  };
+
+  const mergedFields: any = { ...current.fields };
+  const editedFieldNames: string[] = [];
+
+  if (updates.fields) {
+    const keys = ['primaryOwner', 'surveyNumber', 'subDivision', 'totalArea', 'shareFraction', 'encumbrances'] as const;
+    for (const key of keys) {
+      if (updates.fields[key]) {
+        const updateItem = updates.fields[key];
+        const origVal = (originalFields as any)[key] ?? '';
+        const currentField = current.fields[key] || {};
+        const isChanged = updateItem.value !== undefined && updateItem.value !== origVal;
+
+        if (isChanged) {
+          editedFieldNames.push(key);
+          corrections[key] = {
+            original: origVal,
+            corrected: updateItem.value,
+            timestamp: new Date().toISOString(),
+          };
+          mergedFields[key] = {
+            ...currentField,
+            ...updateItem,
+            originalValue: origVal,
+            isEdited: true,
+            provenance: 'USER_CORRECTED',
+            status: 'Citizen Corrected',
+          };
+        } else {
+          mergedFields[key] = {
+            ...currentField,
+            ...updateItem,
+            originalValue: currentField.originalValue || origVal,
+            isEdited: Boolean(currentField.isEdited),
+            provenance: currentField.provenance || 'AI_EXTRACTED',
+          };
+        }
+      }
+    }
+  }
+
+  const updatedExtraction: ExtractionData = {
+    ...current,
+    ...updates,
+    originalFields,
+    corrections,
+    fields: mergedFields,
+  };
+
+  const savedExtraction = db.updateExtraction(updatedExtraction);
 
   // If fields are updated, sync back to the associated parcel
   const targetParcelId = updates.parcelId || current.parcelId || 'p-142-3a';
@@ -577,15 +643,19 @@ app.put('/api/extraction', (req, res) => {
 
     db.updateParcel(parcel.id, pUpdates);
 
+    const auditNotes = editedFieldNames.length > 0
+      ? `Citizen corrected fields [${editedFieldNames.join(', ')}]. Original AI values preserved.`
+      : 'Audited and confirmed extracted fields without modifications.';
+
     db.addAuditLog({
       parcelId: parcel.id,
       action: 'EXTRACTION_REVIEWED',
       actor: 'Citizen / Auditor',
-      notes: 'Reviewed and corrected extracted fields. Document values synchronized to case record.',
+      notes: auditNotes,
     });
   }
 
-  res.json({ success: true, data: updated });
+  res.json({ success: true, data: savedExtraction });
 });
 
 app.post('/api/extraction/rescan', async (req, res) => {

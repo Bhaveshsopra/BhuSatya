@@ -167,6 +167,18 @@ export interface DocumentClassificationResult {
   };
 }
 
+export interface ExtractionFieldItem {
+  value: string;
+  marathi: string;
+  confidence: number;
+  status: string;
+  notes: string;
+  originalValue?: string;
+  isEdited?: boolean;
+  provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED';
+  warning?: boolean;
+}
+
 export interface ExtractionData {
   docRef: string;
   parcelId: string;
@@ -177,13 +189,22 @@ export interface ExtractionData {
   taluka: string;
   district: string;
   classification?: DocumentClassificationResult;
+  originalFields?: {
+    primaryOwner?: string;
+    surveyNumber?: string;
+    subDivision?: string;
+    totalArea?: string;
+    shareFraction?: string;
+    encumbrances?: string;
+  };
+  corrections?: Record<string, { original: string; corrected: string; timestamp: string }>;
   fields: {
-    primaryOwner: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
-    surveyNumber: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
-    subDivision: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
-    totalArea: { value: string; marathi: string; confidence: number; status: string; notes: string; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
-    shareFraction: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
-    encumbrances: { value: string; marathi: string; confidence: number; status: string; notes: string; warning?: boolean; provenance?: 'AI_EXTRACTED' | 'USER_CORRECTED' | 'UNVERIFIED' };
+    primaryOwner: ExtractionFieldItem;
+    surveyNumber: ExtractionFieldItem;
+    subDivision: ExtractionFieldItem;
+    totalArea: ExtractionFieldItem;
+    shareFraction: ExtractionFieldItem;
+    encumbrances: ExtractionFieldItem;
   };
 }
 

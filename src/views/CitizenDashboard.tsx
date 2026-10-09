@@ -30,12 +30,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
 
-  // Verification request form state
+  // Verification request form state (empty by default; extracted from document if not provided)
   const [reqSurveyNo, setReqSurveyNo] = useState('');
-  const [reqVillage, setReqVillage] = useState('Mouje Hinjawadi');
-  const [reqTaluka, setReqTaluka] = useState('Mulshi');
-  const [reqAreaHa, setReqAreaHa] = useState('1.35');
-  const [reqOwnerName, setReqOwnerName] = useState('Ananya Sharma');
+  const [reqVillage, setReqVillage] = useState('');
+  const [reqTaluka, setReqTaluka] = useState('');
+  const [reqAreaHa, setReqAreaHa] = useState('');
+  const [reqOwnerName, setReqOwnerName] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null);
@@ -81,9 +81,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     setSelectedFile(file);
     setSelectedFileName(file.name);
     setSelectedFileSize(file.size);
-    if (!reqSurveyNo) {
-      setReqSurveyNo(`Survey No. ${Math.floor(Math.random() * 150 + 50)}/${Math.floor(Math.random() * 4 + 1)}`);
-    }
     setShowRequestModal(true);
   };
 
@@ -611,29 +608,36 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               </button>
             </div>
 
-            <div className="p-3 bg-[#f2f3ff] rounded-lg text-xs text-[#404941]">
-              Attached File: <strong className="text-[#131b2e]">{selectedFileName}</strong>{' '}
-              {selectedFileSize && `(${(selectedFileSize / (1024 * 1024)).toFixed(1)} MB)`}
+            <div className="p-3 bg-[#f2f3ff] rounded-lg text-xs text-[#404941] space-y-1">
+              <div>Attached File: <strong className="text-[#131b2e]">{selectedFileName}</strong>{' '}
+              {selectedFileSize && `(${(selectedFileSize / (1024 * 1024)).toFixed(1)} MB)`}</div>
+              <p className="text-[11px] text-[#717970]">
+                Fields below are optional citizen declarations. If left empty, survey number, area, and owner will be extracted directly from your genuine document.
+              </p>
             </div>
 
             <form onSubmit={submitVerificationRequest} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Survey / Gat No.</label>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">
+                    Survey / Gat No. <span className="text-[#999] normal-case font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
-                    required
+                    placeholder="e.g. 142/2A (or auto-extract)"
                     value={reqSurveyNo}
                     onChange={(e) => setReqSurveyNo(e.target.value)}
                     className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Land Extent (Ha)</label>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">
+                    Land Extent (Ha) <span className="text-[#999] normal-case font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
-                    required
+                    placeholder="e.g. 1.25"
                     value={reqAreaHa}
                     onChange={(e) => setReqAreaHa(e.target.value)}
                     className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
@@ -643,20 +647,24 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Village</label>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">
+                    Village <span className="text-[#999] normal-case font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
-                    required
+                    placeholder="e.g. Mouje Hinjawadi"
                     value={reqVillage}
                     onChange={(e) => setReqVillage(e.target.value)}
                     className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Taluka</label>
+                  <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">
+                    Taluka <span className="text-[#999] normal-case font-normal">(Optional)</span>
+                  </label>
                   <input
                     type="text"
-                    required
+                    placeholder="e.g. Mulshi"
                     value={reqTaluka}
                     onChange={(e) => setReqTaluka(e.target.value)}
                     className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"
@@ -665,10 +673,12 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">Primary Titleholder / Khatedar</label>
+                <label className="block text-[10px] font-bold uppercase text-[#717970] mb-1">
+                  Primary Titleholder / Khatedar <span className="text-[#999] normal-case font-normal">(Optional)</span>
+                </label>
                 <input
                   type="text"
-                  required
+                  placeholder="e.g. Ananya Sharma (or auto-extract)"
                   value={reqOwnerName}
                   onChange={(e) => setReqOwnerName(e.target.value)}
                   className="w-full px-3 py-2 bg-[#faf8ff] rounded-lg border border-[#c0c9be] text-[#131b2e]"

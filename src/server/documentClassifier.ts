@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import crypto from 'crypto';
+import { validateUploadedDocumentFile, FileValidationResult } from './fileValidator.ts';
 
 export type LandDocumentType =
   | 'SATBARA_7_12'
@@ -158,65 +159,24 @@ const LAND_RECORD_KEYWORDS: Record<LandDocumentType, string[]> = {
 };
 
 /**
- * Stage A: Validate file signature/magic bytes
+ * Stage A: Validate file signature, structure, and decodability
  */
-export function validateFileMagicBytes(buffer: Buffer): {
+export function validateFileMagicBytes(
+  buffer: Buffer,
+  declaredMimeType?: string,
+  originalFilename?: string
+): {
   valid: boolean;
   detectedMime?: string;
   error?: string;
+  details?: any;
 } {
-  if (!buffer || buffer.length === 0) {
-    return { valid: false, error: 'Uploaded file is empty (0 bytes).' };
-  }
-
-  if (buffer.length > 25 * 1024 * 1024) {
-    return { valid: false, error: 'File size exceeds maximum allowed limit of 25MB.' };
-  }
-
-  // PDF magic bytes: %PDF- (0x25 0x50 0x44 0x46 0x2D)
-  if (
-    buffer.length >= 5 &&
-    buffer[0] === 0x25 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x44 &&
-    buffer[3] === 0x46 &&
-    buffer[4] === 0x2d
-  ) {
-    return { valid: true, detectedMime: 'application/pdf' };
-  }
-
-  // PNG magic bytes: \x89PNG\r\n\x1a\n (0x89 0x50 0x4E 0x47 0x0D 0x0A 0x1A 0x0A)
-  if (
-    buffer.length >= 8 &&
-    buffer[0] === 0x89 &&
-    buffer[1] === 0x50 &&
-    buffer[2] === 0x4e &&
-    buffer[3] === 0x47 &&
-    buffer[4] === 0x0d &&
-    buffer[5] === 0x0a &&
-    buffer[6] === 0x1a &&
-    buffer[7] === 0x0a
-  ) {
-    return { valid: true, detectedMime: 'image/png' };
-  }
-
-  // JPEG magic bytes: FF D8 FF
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { valid: true, detectedMime: 'image/jpeg' };
-  }
-
-  // TIFF magic bytes: II*\0 (0x49 0x49 0x2A 0x00) or MM\0* (0x4D 0x4D 0x00 0x2A)
-  if (
-    buffer.length >= 4 &&
-    ((buffer[0] === 0x49 && buffer[1] === 0x49 && buffer[2] === 0x2a && buffer[3] === 0x00) ||
-      (buffer[0] === 0x4d && buffer[1] === 0x4d && buffer[2] === 0x00 && buffer[3] === 0x2a))
-  ) {
-    return { valid: true, detectedMime: 'image/tiff' };
-  }
-
+  const result = validateUploadedDocumentFile(buffer, declaredMimeType, originalFilename);
   return {
-    valid: false,
-    error: 'Invalid file signature / magic bytes. Only valid PDF, PNG, JPEG, or TIFF files are permitted.',
+    valid: result.valid,
+    detectedMime: result.detectedMime,
+    error: result.error,
+    details: result.details,
   };
 }
 
@@ -249,9 +209,9 @@ export async function classifyAndExtractLandDocument(
   const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
   const verifiedAt = new Date().toISOString();
 
-  // STAGE A: Magic Bytes Validation
-  const magicValidation = validateFileMagicBytes(fileBuffer);
-    if (!magicValidation.valid) {
+  // STAGE A: Magic Bytes & Structural Decodability Validation
+  const fileValidation = validateFileMagicBytes(fileBuffer, declaredMimeType, originalFilename);
+  if (!fileValidation.valid) {
     return {
       status: 'REJECTED_NOT_LAND_DOCUMENT',
       isSupportedLandDocument: false,
@@ -263,21 +223,21 @@ export async function classifyAndExtractLandDocument(
       visibleEvidence: [],
       ocrText: '',
       extractedFields: getEmptyExtractedFields(),
-      reasons: [magicValidation.error || 'Corrupt or unsupported binary header.'],
+      reasons: [fileValidation.error || 'Corrupt or unsupported binary header/structure.'],
       requiresManualReview: false,
       sha256,
       verifiedAt,
       evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
       stageResults: {
-        stageA_fileValidation: { passed: false, message: magicValidation.error || 'Invalid signature' },
+        stageA_fileValidation: { passed: false, message: fileValidation.error || 'Invalid signature/structure' },
         stageB_classification: { passed: false, detectedType: 'UNKNOWN', confidence: 0.0 },
         stageC_ocrEvidence: { passed: false, matchedKeywordsCount: 0, matchedKeywords: [] },
-        stageD_decision: { status: 'REJECTED_NOT_LAND_DOCUMENT', decisionNotes: 'Rejected at Stage A (binary validation).' },
+        stageD_decision: { status: 'REJECTED_NOT_LAND_DOCUMENT', decisionNotes: 'Rejected at Stage A (file validation).' },
       },
     };
   }
 
-  const effectiveMime = magicValidation.detectedMime || declaredMimeType;
+  const effectiveMime = fileValidation.detectedMime || declaredMimeType;
 
   // Check GenAI Availability
   const ai = getGenAIClient();

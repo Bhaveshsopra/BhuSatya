@@ -706,6 +706,36 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
               );
             })()}
 
+            {/* Citizen Corrections Audit Ledger Card */}
+            {extraction.corrections && Object.keys(extraction.corrections).length > 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900">
+                    <span className="material-symbols-outlined text-base text-amber-700">edit_note</span>
+                    <span>Citizen Corrections Audit Record ({Object.keys(extraction.corrections).length} fields edited)</span>
+                  </div>
+                  <span className="text-[10px] text-amber-800 bg-amber-100 px-2 py-0.5 rounded font-mono">
+                    Original AI Kept in Escrow
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-900/80">
+                  Citizen manual edits are recorded separately from the raw multimodal AI extraction to preserve forensic auditability.
+                </p>
+                <div className="space-y-1.5 pt-1">
+                  {Object.entries(extraction.corrections).map(([fieldName, corr]) => (
+                    <div key={fieldName} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-2 bg-white rounded border border-amber-200/60 text-[11px]">
+                      <span className="font-semibold text-[#131b2e] capitalize">{fieldName}:</span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[#717970] line-through">AI: {corr.original || '(empty)'}</span>
+                        <span className="text-amber-800">→</span>
+                        <span className="font-bold text-[#006d30]">Citizen: {corr.corrected}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* FIELD 1: Primary Owner Name */}
             <div className="flex flex-col gap-1 p-3 rounded-xl bg-white hover:bg-[#f2f3ff] transition-colors border border-[#c0c9be]/50 shadow-2xs">
               <div className="flex items-center justify-between gap-2">
@@ -713,14 +743,18 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   Primary Owner Name (खातेदाराचे नाव)
                 </label>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED'
+                  extraction.fields?.primaryOwner?.isEdited || extraction.fields?.primaryOwner?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED'
                     ? 'bg-[#92f5a4] text-[#007233]'
-                    : 'bg-amber-100 text-amber-800'
+                    : 'bg-slate-100 text-slate-800'
                 }`}>
                   <span className="material-symbols-outlined text-[12px]">
-                    {extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'help_outline'}
+                    {extraction.fields?.primaryOwner?.isEdited ? 'edit' : extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'help_outline'}
                   </span>
-                  {extraction.fields?.primaryOwner?.confidence ?? 75}% • {extraction.fields?.primaryOwner?.status || 'Unverified'}
+                  {extraction.fields?.primaryOwner?.isEdited
+                    ? 'Citizen Corrected'
+                    : `${extraction.fields?.primaryOwner?.confidence ?? 75}% • ${extraction.fields?.primaryOwner?.status || 'AI Extracted'}`}
                 </span>
               </div>
               <div className="relative">
@@ -733,6 +767,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   className="w-full h-10 px-3 pr-16 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
                 />
               </div>
+              {(extraction.fields?.primaryOwner?.isEdited || extraction.originalFields?.primaryOwner) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.primaryOwner?.originalValue || extraction.originalFields?.primaryOwner || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* FIELD 2: Survey / Gat Number */}
@@ -742,14 +781,18 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   Survey / Gat Number (सर्व्हे / गट क्रमांक)
                 </label>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED'
+                  extraction.fields?.surveyNumber?.isEdited || extraction.fields?.surveyNumber?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED'
                     ? 'bg-[#92f5a4] text-[#007233]'
-                    : 'bg-amber-100 text-amber-800'
+                    : 'bg-slate-100 text-slate-800'
                 }`}>
                   <span className="material-symbols-outlined text-[12px]">
-                    {extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED' ? 'verified' : 'help_outline'}
+                    {extraction.fields?.surveyNumber?.isEdited ? 'edit' : extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED' ? 'verified' : 'help_outline'}
                   </span>
-                  {extraction.fields?.surveyNumber?.confidence ?? 75}% • {extraction.fields?.surveyNumber?.status || 'Unverified'}
+                  {extraction.fields?.surveyNumber?.isEdited
+                    ? 'Citizen Corrected'
+                    : `${extraction.fields?.surveyNumber?.confidence ?? 75}% • ${extraction.fields?.surveyNumber?.status || 'AI Extracted'}`}
                 </span>
               </div>
               <input
@@ -760,6 +803,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 placeholder="Survey or Gat number"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-bold text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
+              {(extraction.fields?.surveyNumber?.isEdited || extraction.originalFields?.surveyNumber) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.surveyNumber?.originalValue || extraction.originalFields?.surveyNumber || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* FIELD 3: Gat Sub-division / Hissa */}
@@ -769,12 +817,18 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   Gat Sub-division / Hissa (पोट हिस्सा)
                 </label>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  extraction.fields?.subDivision?.provenance === 'AI_EXTRACTED'
+                  extraction.fields?.subDivision?.isEdited || extraction.fields?.subDivision?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : extraction.fields?.subDivision?.provenance === 'AI_EXTRACTED'
                     ? 'bg-[#92f5a4] text-[#007233]'
                     : 'bg-slate-100 text-slate-700'
                 }`}>
-                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  {extraction.fields?.subDivision?.confidence ?? 50}% • {extraction.fields?.subDivision?.status || 'Pending'}
+                  <span className="material-symbols-outlined text-[12px]">
+                    {extraction.fields?.subDivision?.isEdited ? 'edit' : 'check_circle'}
+                  </span>
+                  {extraction.fields?.subDivision?.isEdited
+                    ? 'Citizen Corrected'
+                    : `${extraction.fields?.subDivision?.confidence ?? 50}% • ${extraction.fields?.subDivision?.status || 'AI Extracted'}`}
                 </span>
               </div>
               <input
@@ -785,6 +839,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 placeholder="Hissa number"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
+              {(extraction.fields?.subDivision?.isEdited || extraction.originalFields?.subDivision) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.subDivision?.originalValue || extraction.originalFields?.subDivision || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* FIELD 4: Total Land Area */}
@@ -794,12 +853,18 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   Total Land Area (एकूण क्षेत्र - Hectare / Are)
                 </label>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  extraction.fields?.totalArea?.provenance === 'AI_EXTRACTED'
+                  extraction.fields?.totalArea?.isEdited || extraction.fields?.totalArea?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : extraction.fields?.totalArea?.provenance === 'AI_EXTRACTED'
                     ? 'bg-[#92f5a4] text-[#007233]'
                     : 'bg-slate-100 text-slate-700'
                 }`}>
-                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  {extraction.fields?.totalArea?.confidence ?? 60}% • {extraction.fields?.totalArea?.status || 'Unverified'}
+                  <span className="material-symbols-outlined text-[12px]">
+                    {extraction.fields?.totalArea?.isEdited ? 'edit' : 'check_circle'}
+                  </span>
+                  {extraction.fields?.totalArea?.isEdited
+                    ? 'Citizen Corrected'
+                    : `${extraction.fields?.totalArea?.confidence ?? 60}% • ${extraction.fields?.totalArea?.status || 'AI Extracted'}`}
                 </span>
               </div>
               <input
@@ -810,6 +875,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 placeholder="Area in Ha / Acres"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
+              {(extraction.fields?.totalArea?.isEdited || extraction.originalFields?.totalArea) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.totalArea?.originalValue || extraction.originalFields?.totalArea || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* FIELD 5: Ownership Share Fractions */}
@@ -819,9 +889,13 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   <span className="material-symbols-outlined text-base text-[#703a00]">warning</span>
                   Ownership Share Fractions (धारण प्रकार व हिस्सा)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#703a00] text-[#ffa14e] text-[10px] font-bold">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.shareFraction?.isEdited || extraction.fields?.shareFraction?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-200 text-amber-950 border border-amber-400'
+                    : 'bg-[#703a00] text-[#ffa14e]'
+                }`}>
                   <span className="material-symbols-outlined text-[12px]">priority_high</span>
-                  {extraction.fields?.shareFraction?.status || 'Review Required'}
+                  {extraction.fields?.shareFraction?.isEdited ? 'Citizen Corrected' : (extraction.fields?.shareFraction?.status || 'Review Required')}
                 </span>
               </div>
               <input
@@ -832,6 +906,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 placeholder="Share info"
                 className="w-full h-10 px-3 rounded-lg bg-white text-xs font-medium text-[#131b2e] border border-[#703a00]/40 focus:outline-none focus:ring-2 focus:ring-[#703a00]"
               />
+              {(extraction.fields?.shareFraction?.isEdited || extraction.originalFields?.shareFraction) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.shareFraction?.originalValue || extraction.originalFields?.shareFraction || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
 
             {/* FIELD 6: Encumbrances / Bank Charges */}
@@ -842,14 +921,16 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   Encumbrances / Bank Charges (इतर हक्क व बोजा)
                 </label>
                 <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                  extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED'
+                  extraction.fields?.encumbrances?.isEdited || extraction.fields?.encumbrances?.provenance === 'USER_CORRECTED'
+                    ? 'bg-amber-200 text-amber-950 border border-amber-400'
+                    : extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED'
                     ? 'bg-[#92f5a4] text-[#007233]'
                     : 'bg-[#703a00] text-[#ffa14e]'
                 }`}>
                   <span className="material-symbols-outlined text-[12px]">
-                    {extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'error'}
+                    {extraction.fields?.encumbrances?.isEdited ? 'edit' : extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'error'}
                   </span>
-                  {extraction.fields?.encumbrances?.status || 'Search Required'}
+                  {extraction.fields?.encumbrances?.isEdited ? 'Citizen Corrected' : (extraction.fields?.encumbrances?.status || 'Search Required')}
                 </span>
               </div>
               <input
@@ -860,6 +941,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 placeholder="Encumbrances or bank liens"
                 className="w-full h-10 px-3 rounded-lg bg-white text-xs font-medium text-[#131b2e] border border-[#703a00]/40 focus:outline-none focus:ring-2 focus:ring-[#703a00]"
               />
+              {(extraction.fields?.encumbrances?.isEdited || extraction.originalFields?.encumbrances) && (
+                <div className="text-[10px] text-[#717970] flex items-center justify-between pt-0.5">
+                  <span>Original AI Extraction: <strong className="text-[#131b2e]">{extraction.fields?.encumbrances?.originalValue || extraction.originalFields?.encumbrances || 'N/A'}</strong></span>
+                </div>
+              )}
             </div>
           </div>
         </section>
