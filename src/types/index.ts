@@ -158,6 +158,7 @@ export interface DocumentClassificationResult {
   requiresManualReview: boolean;
   sha256?: string;
   verifiedAt: string;
+  evidenceLimitationNotice?: string;
   stageResults?: {
     stageA_fileValidation: { passed: boolean; message: string; mimeTypeDetected?: string };
     stageB_classification: { passed: boolean; detectedType: LandDocumentType; confidence: number };

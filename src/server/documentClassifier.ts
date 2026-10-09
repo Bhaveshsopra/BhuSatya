@@ -50,6 +50,7 @@ export interface DocumentClassificationResult {
   requiresManualReview: boolean;
   sha256?: string;
   verifiedAt: string;
+  evidenceLimitationNotice?: string;
   stageResults: {
     stageA_fileValidation: { passed: boolean; message: string; mimeTypeDetected?: string };
     stageB_classification: { passed: boolean; detectedType: LandDocumentType; confidence: number };
@@ -67,6 +68,9 @@ export const SUPPORTED_LAND_DOCUMENT_DESCRIPTIONS: Record<LandDocumentType, stri
   OTHER_OFFICIAL_LAND_RECORD: 'Other Official Land Record (Tippani / Mojani Nakasha / Government Revenue Document)',
   UNKNOWN: 'Unsupported / Non-Land Document',
 };
+
+export const EVIDENCE_LIMITATION_NOTICE =
+  'Notice: Layout analysis and keyword matching are performed on vision-model OCR text. This enables automated document triage and field extraction for review, but does NOT constitute legal proof of document authenticity or independent government database verification.';
 
 // Authentic Maharashtra Revenue terminology keywords for independent evidence validation
 const LAND_RECORD_KEYWORDS: Record<LandDocumentType, string[]> = {
@@ -247,7 +251,7 @@ export async function classifyAndExtractLandDocument(
 
   // STAGE A: Magic Bytes Validation
   const magicValidation = validateFileMagicBytes(fileBuffer);
-  if (!magicValidation.valid) {
+    if (!magicValidation.valid) {
     return {
       status: 'REJECTED_NOT_LAND_DOCUMENT',
       isSupportedLandDocument: false,
@@ -263,6 +267,7 @@ export async function classifyAndExtractLandDocument(
       requiresManualReview: false,
       sha256,
       verifiedAt,
+      evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
       stageResults: {
         stageA_fileValidation: { passed: false, message: magicValidation.error || 'Invalid signature' },
         stageB_classification: { passed: false, detectedType: 'UNKNOWN', confidence: 0.0 },
@@ -294,6 +299,7 @@ export async function classifyAndExtractLandDocument(
       requiresManualReview: true,
       sha256,
       verifiedAt,
+      evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
       stageResults: {
         stageA_fileValidation: { passed: true, message: 'Valid file signature.', mimeTypeDetected: effectiveMime },
         stageB_classification: { passed: false, detectedType: 'UNKNOWN', confidence: 0.0 },
@@ -485,6 +491,7 @@ CRITICAL INSTRUCTIONS:
         requiresManualReview: true,
         sha256,
         verifiedAt,
+        evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
         stageResults: {
           stageA_fileValidation: { passed: true, message: 'Valid file signature.', mimeTypeDetected: effectiveMime },
           stageB_classification: { passed: false, detectedType: 'UNKNOWN', confidence: 0.3 },
@@ -554,9 +561,9 @@ CRITICAL INSTRUCTIONS:
         reasons.push('Survey/Gat number could not be unequivocally extracted from the image.');
       }
     } else {
-      // Valid, authentic land record
+      // Valid land record layout & evidence
       finalStatus = 'ACCEPTED_LAND_DOCUMENT';
-      decisionNotes = `Confirmed ${SUPPORTED_LAND_DOCUMENT_DESCRIPTIONS[docType]} with ${matchedKeywords.length} verified evidence tokens.`;
+      decisionNotes = `Detected layout and terminology consistent with ${SUPPORTED_LAND_DOCUMENT_DESCRIPTIONS[docType]} (${matchedKeywords.length} verified tokens). Legal title authenticity pending official revenue authority verification.`;
     }
 
     // Clean up extracted fields
@@ -595,6 +602,7 @@ CRITICAL INSTRUCTIONS:
       requiresManualReview: finalRequiresManualReview,
       sha256,
       verifiedAt,
+      evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
       stageResults: {
         stageA_fileValidation: { passed: true, message: 'Valid file signature.', mimeTypeDetected: effectiveMime },
         stageB_classification: {
@@ -627,6 +635,7 @@ CRITICAL INSTRUCTIONS:
       requiresManualReview: true,
       sha256,
       verifiedAt,
+      evidenceLimitationNotice: EVIDENCE_LIMITATION_NOTICE,
       stageResults: {
         stageA_fileValidation: { passed: true, message: 'Valid file signature.', mimeTypeDetected: effectiveMime },
         stageB_classification: { passed: false, detectedType: 'UNKNOWN', confidence: 0.0 },

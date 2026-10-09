@@ -351,3 +351,231 @@ export const db = {
     return cert;
   },
 };
+
+export function evaluateParcelGates(parcel: Partial<Parcel>): {
+  score: number;
+  diligenceScore: number;
+  gates: Parcel['gates'];
+  recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information';
+  recommendationExplanation: string;
+} {
+  const gates: Parcel['gates'] = [];
+
+  // Gate 1: 30-Year Ancestral Lineage & Succession
+  gates.push({
+    id: 1,
+    name: '1. Ownership Chain & 30-Year Title Search',
+    status: 'PASS',
+    desc: 'Unbroken ancestral succession verified across registered mutation entries.',
+    sourceSystem: 'State Land Records Mutation Register (Ferfar)',
+    isSimulated: true,
+  });
+
+  // Gate 2: CERSAI Central Registry & Financial Charges
+  const encText = (parcel.encumbrance || '').trim().toLowerCase();
+  const isEncClean =
+    encText.includes('nil') ||
+    encText.includes('zero') ||
+    encText.includes('satisfied') ||
+    encText.includes('no dues') ||
+    encText.includes('clear') ||
+    encText.includes('none');
+
+  const hasEncumbrance =
+    !isEncClean &&
+    (encText.includes('charge') ||
+      encText.includes('mortgage') ||
+      encText.includes('hypothecation') ||
+      encText.includes('loan') ||
+      encText.includes('lien') ||
+      encText.includes('bank'));
+
+  const isEncMissing = !parcel.encumbrance || parcel.encumbrance.trim() === '';
+
+  if (isEncMissing) {
+    gates.push({
+      id: 2,
+      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
+      status: 'NOT_CONNECTED',
+      desc: 'Live CERSAI API Gateway: NOT CONNECTED (Simulation Sandbox). Official bank charge search certificate not linked.',
+      sourceSystem: 'CERSAI Central Registry Gateway',
+      isSimulated: false,
+    });
+  } else {
+    gates.push({
+      id: 2,
+      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
+      status: hasEncumbrance ? 'WARN' : 'PASS',
+      desc: hasEncumbrance
+        ? parcel.encumbrance!
+        : 'Zero unreleased bank charges or mortgage liens registered on CERSAI.',
+      sourceSystem: 'CERSAI Central Registry (Demonstration Data - Gateway Not Live)',
+      isSimulated: true,
+    });
+  }
+
+  // Gate 3: e-Courts Injunctions & Pending Litigation
+  const litText = (parcel.litigation || '').trim().toLowerCase();
+  const isLitClean =
+    litText.includes('zero') ||
+    litText.includes('nil') ||
+    litText.includes('no civil') ||
+    litText.includes('clean') ||
+    litText.includes('cleared') ||
+    litText.includes('none');
+
+  const hasLitigation =
+    !isLitClean &&
+    (litText.includes('suit') ||
+      litText.includes('stay') ||
+      litText.includes('injunction') ||
+      litText.includes('caveat') ||
+      litText.includes('dispute') ||
+      litText.includes('enquiry') ||
+      litText.includes('pending'));
+
+  const isLitMissing = !parcel.litigation || parcel.litigation.trim() === '';
+
+  if (isLitMissing) {
+    gates.push({
+      id: 3,
+      name: '3. Court Injunctions & Pending Litigation',
+      status: 'NOT_CONNECTED',
+      desc: 'e-Courts NJDG API Gateway: NOT CONNECTED. Automated judicial search unavailable in sandbox; manual caveat check required.',
+      sourceSystem: 'e-Courts National Judicial Data Grid (NJDG)',
+      isSimulated: false,
+    });
+  } else {
+    gates.push({
+      id: 3,
+      name: '3. Court Injunctions & Pending Litigation',
+      status: hasLitigation ? 'BLOCK' : 'PASS',
+      desc: hasLitigation
+        ? parcel.litigation!
+        : 'Zero civil suits, caveats, or injunction orders found in District e-Courts register.',
+      sourceSystem: 'e-Courts NJDG (Demonstration Sandbox Data)',
+      isSimulated: true,
+    });
+  }
+
+  // Gate 4: Buffer / Restricted classification
+  const bufText = (parcel.buffer || '').trim().toLowerCase();
+  const isBufClean = bufText.includes('clear') || bufText.includes('outside') || bufText.includes('zero') || bufText.includes('none');
+  const isRestricted =
+    (parcel.classification &&
+      (parcel.classification.toLowerCase().includes('restricted') ||
+        parcel.classification.toLowerCase().includes('inam') ||
+        parcel.classification.toLowerCase().includes('wakf') ||
+        parcel.classification.toLowerCase().includes('class-ii'))) ||
+    (!isBufClean && (bufText.includes('canal') || bufText.includes('buffer') || bufText.includes('crz') || bufText.includes('reservation')));
+
+  gates.push({
+    id: 4,
+    name: '4. Restricted / Government Land Classification',
+    status: isRestricted ? 'BLOCK' : 'PASS',
+    desc: isRestricted
+      ? (parcel.buffer || 'Restricted land classification or buffer zone reservation applies.')
+      : 'Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.',
+    sourceSystem: 'State Cadastral Classification Ledger (Mahabhulekh)',
+    isSimulated: true,
+  });
+
+  // Gate 5: Overlap
+  const ovText = (parcel.overlap || '').trim().toLowerCase();
+  const isOvClean = ovText.includes('zero') || ovText.includes('nil') || ovText.includes('matches 100%') || ovText.includes('no overlap');
+  const hasOverlap = !isOvClean && ovText.includes('overlap');
+
+  gates.push({
+    id: 5,
+    name: '5. Cadastral Boundary Overlap',
+    status: hasOverlap ? 'WARN' : 'PASS',
+    desc: hasOverlap
+      ? parcel.overlap!
+      : 'Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.',
+    sourceSystem: 'Cadastral GIS Tippani / DGPS Polygon Service',
+    isSimulated: true,
+  });
+
+  // Gate 6: Area match
+  gates.push({
+    id: 6,
+    name: '6. Area Match (7/12 vs Land Records Dept Tippani)',
+    status: 'PASS',
+    desc: `Area records match on 7/12 and cadastral map (${parcel.areaHa || 1.45} Ha).`,
+    sourceSystem: 'TILR Cadastral Area Reconciler',
+    isSimulated: true,
+  });
+
+  // Gate 7: Multiple sales
+  gates.push({
+    id: 7,
+    name: '7. Multiple Sales / Pre-existing Agreement to Sale',
+    status: 'PASS',
+    desc: 'No duplicate registered agreements to sale found at Sub-Registrar Office.',
+    sourceSystem: 'IGR Maharashtra Electronic Registry (e-Stepin)',
+    isSimulated: true,
+  });
+
+  // Gate 8: Heirs or Revenue dues
+  const consents = parcel.id ? db.getHeirConsents(parcel.id) : [];
+  const hasObjection = consents.some((c) => c.objectionFiled || c.status === 'Rejected');
+  const hasPendingHeir = consents.some((c) => c.status === 'Pending');
+  const hasHeirIssue =
+    hasObjection ||
+    hasPendingHeir ||
+    (parcel.tags && parcel.tags.some((t) => t.toLowerCase().includes('heir') || t.toLowerCase().includes('signatory')));
+
+  gates.push({
+    id: 8,
+    name: '8. Land Revenue Dues & Legal Heir Consent',
+    status: hasObjection ? 'BLOCK' : hasHeirIssue ? 'WARN' : 'PASS',
+    desc: hasObjection
+      ? 'Formal caveat objection lodged by legal coparcener under Succession Act.'
+      : hasHeirIssue
+      ? 'Pending heir signature or consent deed verification from coparcener.'
+      : 'All cesses cleared and statutory heir consents verified.',
+    sourceSystem: 'BhuSatya Digital Coparcener Consent Ledger',
+    isSimulated: true,
+  });
+
+  // Calculate explainable score:
+  let score = 100;
+  if (hasEncumbrance) score -= 12;
+  if (hasLitigation) score -= 18;
+  if (isRestricted) score -= 15;
+  if (hasOverlap) score -= 10;
+  if (hasHeirIssue) score -= 8;
+  if (hasObjection) score -= 15;
+  if (isEncMissing) score -= 5;
+  if (isLitMissing) score -= 5;
+  score = Math.max(15, Math.min(100, score));
+
+  const blockCount = gates.filter((g) => g.status === 'BLOCK').length;
+  const warnCount = gates.filter((g) => g.status === 'WARN').length;
+  const notConnectedCount = gates.filter((g) => g.status === 'NOT_CONNECTED').length;
+
+  const isMissingEssential = !parcel.surveyNo || !parcel.primaryOwner;
+
+  let recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information' = 'Pass';
+  let recommendationExplanation = 'All title diligence checks completed satisfactorily.';
+
+  if (isMissingEssential || notConnectedCount >= 2) {
+    recommendation = 'Insufficient Information';
+    recommendationExplanation = `Evidence incomplete: External registries (${notConnectedCount}) are not connected and primary survey metadata is incomplete.`;
+    score = Math.min(score, 45);
+  } else if (blockCount > 0) {
+    recommendation = 'Needs Review';
+    recommendationExplanation = `Automated verification detected ${blockCount} BLOCK triggers and ${warnCount} WARN triggers. Requires Officer Override or statutory clearance before deed registration.`;
+  } else if (warnCount > 0) {
+    recommendation = 'Needs Review';
+    recommendationExplanation = `Automated verification detected ${warnCount} WARN items requiring resolution or seller verification before advance payment.`;
+  }
+
+  return {
+    score,
+    diligenceScore: score,
+    gates,
+    recommendation,
+    recommendationExplanation,
+  };
+}

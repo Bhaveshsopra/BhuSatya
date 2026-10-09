@@ -4,8 +4,8 @@ import fs from 'fs';
 import crypto from 'crypto';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
-import { db, Parcel, StoredCertificate } from './src/server/db.ts';
-import { OfficerQueueItem } from './src/types/index.ts';
+import { db, Parcel, StoredCertificate, evaluateParcelGates } from './src/server/db.ts';
+import { OfficerQueueItem, ExtractionData } from './src/types/index.ts';
 import {
   classifyAndExtractLandDocument,
   DocumentClassificationResult,
@@ -75,235 +75,6 @@ const uploadMiddleware = multer({
   },
 });
 
-// Helper to compute explainable risk score and gates for any parcel
-function evaluateParcelGates(parcel: Partial<Parcel>): {
-  score: number;
-  diligenceScore: number;
-  gates: Parcel['gates'];
-  recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information';
-  recommendationExplanation: string;
-} {
-  const gates: Parcel['gates'] = [];
-
-  // Gate 1: 30-Year Ancestral Lineage & Succession
-  gates.push({
-    id: 1,
-    name: '1. Ownership Chain & 30-Year Title Search',
-    status: 'PASS',
-    desc: 'Unbroken ancestral succession verified across registered mutation entries.',
-    sourceSystem: 'State Land Records Mutation Register (Ferfar)',
-    isSimulated: true,
-  });
-
-  // Gate 2: CERSAI Central Registry & Financial Charges
-  const encText = (parcel.encumbrance || '').trim().toLowerCase();
-  const isEncClean =
-    encText.includes('nil') ||
-    encText.includes('zero') ||
-    encText.includes('satisfied') ||
-    encText.includes('no dues') ||
-    encText.includes('clear') ||
-    encText.includes('none');
-
-  const hasEncumbrance =
-    !isEncClean &&
-    (encText.includes('charge') ||
-      encText.includes('mortgage') ||
-      encText.includes('hypothecation') ||
-      encText.includes('loan') ||
-      encText.includes('lien') ||
-      encText.includes('bank'));
-
-  const isEncMissing = !parcel.encumbrance || parcel.encumbrance.trim() === '';
-
-  if (isEncMissing) {
-    gates.push({
-      id: 2,
-      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
-      status: 'NOT_CONNECTED',
-      desc: 'Live CERSAI API Gateway: NOT CONNECTED (Simulation Sandbox). Official bank charge search certificate not linked.',
-      sourceSystem: 'CERSAI Central Registry Gateway',
-      isSimulated: false,
-    });
-  } else {
-    gates.push({
-      id: 2,
-      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
-      status: hasEncumbrance ? 'WARN' : 'PASS',
-      desc: hasEncumbrance
-        ? parcel.encumbrance!
-        : 'Zero unreleased bank charges or mortgage liens registered on CERSAI.',
-      sourceSystem: 'CERSAI Central Registry (Demonstration Data - Gateway Not Live)',
-      isSimulated: true,
-    });
-  }
-
-  // Gate 3: e-Courts Injunctions & Pending Litigation
-  const litText = (parcel.litigation || '').trim().toLowerCase();
-  const isLitClean =
-    litText.includes('zero') ||
-    litText.includes('nil') ||
-    litText.includes('no civil') ||
-    litText.includes('clean') ||
-    litText.includes('cleared') ||
-    litText.includes('none');
-
-  const hasLitigation =
-    !isLitClean &&
-    (litText.includes('suit') ||
-      litText.includes('stay') ||
-      litText.includes('injunction') ||
-      litText.includes('caveat') ||
-      litText.includes('dispute') ||
-      litText.includes('enquiry') ||
-      litText.includes('pending'));
-
-  const isLitMissing = !parcel.litigation || parcel.litigation.trim() === '';
-
-  if (isLitMissing) {
-    gates.push({
-      id: 3,
-      name: '3. Court Injunctions & Pending Litigation',
-      status: 'NOT_CONNECTED',
-      desc: 'e-Courts NJDG API Gateway: NOT CONNECTED. Automated judicial search unavailable in sandbox; manual caveat check required.',
-      sourceSystem: 'e-Courts National Judicial Data Grid (NJDG)',
-      isSimulated: false,
-    });
-  } else {
-    gates.push({
-      id: 3,
-      name: '3. Court Injunctions & Pending Litigation',
-      status: hasLitigation ? 'BLOCK' : 'PASS',
-      desc: hasLitigation
-        ? parcel.litigation!
-        : 'Zero civil suits, caveats, or injunction orders found in District e-Courts register.',
-      sourceSystem: 'e-Courts NJDG (Demonstration Sandbox Data)',
-      isSimulated: true,
-    });
-  }
-
-  // Gate 4: Buffer / Restricted classification
-  const bufText = (parcel.buffer || '').trim().toLowerCase();
-  const isBufClean = bufText.includes('clear') || bufText.includes('outside') || bufText.includes('zero') || bufText.includes('none');
-  const isRestricted =
-    (parcel.classification &&
-      (parcel.classification.toLowerCase().includes('restricted') ||
-        parcel.classification.toLowerCase().includes('inam') ||
-        parcel.classification.toLowerCase().includes('wakf') ||
-        parcel.classification.toLowerCase().includes('class-ii'))) ||
-    (!isBufClean && (bufText.includes('canal') || bufText.includes('buffer') || bufText.includes('crz') || bufText.includes('reservation')));
-
-  gates.push({
-    id: 4,
-    name: '4. Restricted / Government Land Classification',
-    status: isRestricted ? 'BLOCK' : 'PASS',
-    desc: isRestricted
-      ? (parcel.buffer || 'Restricted land classification or buffer zone reservation applies.')
-      : 'Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.',
-    sourceSystem: 'State Cadastral Classification Ledger (Mahabhulekh)',
-    isSimulated: true,
-  });
-
-  // Gate 5: Overlap
-  const ovText = (parcel.overlap || '').trim().toLowerCase();
-  const isOvClean = ovText.includes('zero') || ovText.includes('nil') || ovText.includes('matches 100%') || ovText.includes('no overlap');
-  const hasOverlap = !isOvClean && ovText.includes('overlap');
-
-  gates.push({
-    id: 5,
-    name: '5. Cadastral Boundary Overlap',
-    status: hasOverlap ? 'WARN' : 'PASS',
-    desc: hasOverlap
-      ? parcel.overlap!
-      : 'Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.',
-    sourceSystem: 'Cadastral GIS Tippani / DGPS Polygon Service',
-    isSimulated: true,
-  });
-
-  // Gate 6: Area match
-  gates.push({
-    id: 6,
-    name: '6. Area Match (7/12 vs Land Records Dept Tippani)',
-    status: 'PASS',
-    desc: `Area records match on 7/12 and cadastral map (${parcel.areaHa || 1.45} Ha).`,
-    sourceSystem: 'TILR Cadastral Area Reconciler',
-    isSimulated: true,
-  });
-
-  // Gate 7: Multiple sales
-  gates.push({
-    id: 7,
-    name: '7. Multiple Sales / Pre-existing Agreement to Sale',
-    status: 'PASS',
-    desc: 'No duplicate registered agreements to sale found at Sub-Registrar Office.',
-    sourceSystem: 'IGR Maharashtra Electronic Registry (e-Stepin)',
-    isSimulated: true,
-  });
-
-  // Gate 8: Heirs or Revenue dues
-  const consents = parcel.id ? db.getHeirConsents(parcel.id) : [];
-  const hasObjection = consents.some((c) => c.objectionFiled || c.status === 'Rejected');
-  const hasPendingHeir = consents.some((c) => c.status === 'Pending');
-  const hasHeirIssue =
-    hasObjection ||
-    hasPendingHeir ||
-    (parcel.tags && parcel.tags.some((t) => t.toLowerCase().includes('heir') || t.toLowerCase().includes('signatory')));
-
-  gates.push({
-    id: 8,
-    name: '8. Land Revenue Dues & Legal Heir Consent',
-    status: hasObjection ? 'BLOCK' : hasHeirIssue ? 'WARN' : 'PASS',
-    desc: hasObjection
-      ? 'Formal caveat objection lodged by legal coparcener under Succession Act.'
-      : hasHeirIssue
-      ? 'Pending heir signature or consent deed verification from coparcener.'
-      : 'All cesses cleared and statutory heir consents verified.',
-    sourceSystem: 'BhuSatya Digital Coparcener Consent Ledger',
-    isSimulated: true,
-  });
-
-  // Calculate explainable score:
-  let score = 100;
-  if (hasEncumbrance) score -= 12;
-  if (hasLitigation) score -= 18;
-  if (isRestricted) score -= 15;
-  if (hasOverlap) score -= 10;
-  if (hasHeirIssue) score -= 8;
-  if (hasObjection) score -= 15;
-  if (isEncMissing) score -= 5;
-  if (isLitMissing) score -= 5;
-  score = Math.max(15, Math.min(100, score));
-
-  const blockCount = gates.filter((g) => g.status === 'BLOCK').length;
-  const warnCount = gates.filter((g) => g.status === 'WARN').length;
-  const notConnectedCount = gates.filter((g) => g.status === 'NOT_CONNECTED').length;
-
-  const isMissingEssential = !parcel.surveyNo || !parcel.primaryOwner;
-
-  let recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information' = 'Pass';
-  let recommendationExplanation = 'All title diligence checks completed satisfactorily.';
-
-  if (isMissingEssential || notConnectedCount >= 2) {
-    recommendation = 'Insufficient Information';
-    recommendationExplanation = `Evidence incomplete: External registries (${notConnectedCount}) are not connected and primary survey metadata is incomplete.`;
-    score = Math.min(score, 45);
-  } else if (blockCount > 0) {
-    recommendation = 'Needs Review';
-    recommendationExplanation = `Automated verification detected ${blockCount} BLOCK triggers and ${warnCount} WARN triggers. Requires Officer Override or statutory clearance before deed registration.`;
-  } else if (warnCount > 0) {
-    recommendation = 'Needs Review';
-    recommendationExplanation = `Automated verification detected ${warnCount} WARN items requiring resolution or seller verification before advance payment.`;
-  }
-
-  return {
-    score,
-    diligenceScore: score,
-    gates,
-    recommendation,
-    recommendationExplanation,
-  };
-}
-
 // --- API ROUTES ---
 
 // 1. Get all parcels / cases
@@ -361,111 +132,164 @@ app.post('/api/parcels/upload', (req, res) => {
       const file = req.file;
       const body = req.body || {};
 
+      // Stage A Mandatory Requirement: Reject requests without a genuine physical file upload
+      if (!file) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'A genuine uploaded land document file (PDF, PNG, JPEG, or TIFF) is mandatory. Requests with only fabricated metadata without a genuine file are rejected.',
+        });
+      }
+
+      const fileSize = file.size;
+      const fileName = file.originalname;
+      const fileType = file.mimetype;
+      const source = body.source || 'Citizen Upload';
       const stateAuthority = body.stateAuthority || 'mh';
+
+      // File size validation (max 25MB)
+      if (fileSize > 25 * 1024 * 1024) {
+        try { fs.unlinkSync(file.path); } catch (_) {}
+        return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
+      }
+
+      // STAGE A, B, C, D: Multi-Stage Document Classification and OCR Analysis
+      const fileBuffer = fs.readFileSync(file.path);
+      const classification = await classifyAndExtractLandDocument(fileBuffer, file.mimetype, file.originalname);
+
+      // STAGE D: Fail-Closed on Non-Land Documents (HTTP 422)
+      if (classification.status === 'REJECTED_NOT_LAND_DOCUMENT') {
+        try { fs.unlinkSync(file.path); } catch (_) {}
+        return res.status(422).json({
+          success: false,
+          error: `DOCUMENT_REJECTED: The submitted file "${file.originalname}" is not recognized as a supported Maharashtra land record document.`,
+          reasons: classification.reasons,
+          classification,
+        });
+      }
+
+      // AI Service Unavailable: Fail-Closed (HTTP 503)
+      if (classification.status === 'DOCUMENT_VALIDATION_UNAVAILABLE') {
+        try { fs.unlinkSync(file.path); } catch (_) {}
+        return res.status(503).json({
+          success: false,
+          error:
+            'DOCUMENT_VALIDATION_UNAVAILABLE: AI Document Classification and OCR service is unavailable. Please verify server GEMINI_API_KEY configuration and retry.',
+          reasons: classification.reasons,
+          classification,
+        });
+      }
+
+      // Populate fields ONLY from actual visual classification when available, or explicit user form input
+      const extracted = classification.extractedFields;
+
       const surveyNo = body.surveyNo;
       const village = body.village;
       const taluka = body.taluka;
+      const district = body.district;
       const ownerName = body.ownerName;
       const areaHa = body.areaHa;
       const encumbrance = body.encumbrance;
       const litigation = body.litigation;
 
-      const fileName = file ? file.originalname : body.fileName || 'Uploaded_712_Extract.pdf';
-      const fileSize = file ? file.size : typeof body.fileSize === 'number' ? body.fileSize : 1572864;
-      const fileType = file ? file.mimetype : body.fileType || 'application/pdf';
-      const source = file ? 'Direct File Upload & Stored on Server' : body.source || 'Citizen Upload';
-
-      // File size validation (max 25MB)
-      if (fileSize > 25 * 1024 * 1024) {
-        if (file) {
-          try { fs.unlinkSync(file.path); } catch (_) {}
-        }
-        return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
-      }
-
-      // STAGE A, B, C, D: Multi-Stage Document Classification and OCR Analysis
-      let classification: DocumentClassificationResult | undefined;
-
-      if (file) {
-        const fileBuffer = fs.readFileSync(file.path);
-        classification = await classifyAndExtractLandDocument(fileBuffer, file.mimetype, file.originalname);
-
-        // STAGE D ENFORCEMENT: Strictly Reject Non-Land Documents
-        if (classification.status === 'REJECTED_NOT_LAND_DOCUMENT') {
-          try { fs.unlinkSync(file.path); } catch (_) {}
-          return res.status(422).json({
-            success: false,
-            error: `DOCUMENT_REJECTED: The submitted file "${file.originalname}" is not recognized as a supported Maharashtra land record document.`,
-            reasons: classification.reasons,
-            classification,
-          });
-        }
-      }
-
-      // Populate fields from actual visual classification when available, or from user input
-      const extracted = classification?.extractedFields;
-
       const assignedSurvey =
         extracted?.surveyNo ||
-        (surveyNo && surveyNo.trim().length > 0 ? surveyNo.trim() : 'Survey No. Unspecified');
-      const assignedGat = extracted?.gatNo || (extracted?.surveyNo ? `Gat No. ${extracted.surveyNo}` : 'Gat No. Unspecified');
-      const assignedUlpin = extracted?.ulpin || `27-24-0012-0${Math.floor(Math.random() * 900 + 100)}-001A`;
-      const assignedCaseNo = `CASE-${new Date().getFullYear()}-MH-${Math.floor(Math.random() * 80000 + 10000)}`;
-      const newParcelId = `p-${Date.now().toString().slice(-6)}`;
+        (surveyNo && typeof surveyNo === 'string' && surveyNo.trim().length > 0 ? surveyNo.trim() : null);
 
-      const parsedArea =
-        extracted?.areaHa && extracted.areaHa > 0
-          ? extracted.areaHa
-          : Number(areaHa) > 0
-          ? Number(areaHa)
-          : 1.25;
+      const assignedGat =
+        extracted?.gatNo ||
+        (extracted?.surveyNo ? `Gat No. ${extracted.surveyNo}` : null);
+
+      // NEVER fabricate official government identifiers (ULPIN). Only assign if detected or mark pending.
+      const assignedUlpin = extracted?.ulpin || null;
 
       const assignedOwner =
         extracted?.ownerName ||
-        (ownerName && ownerName.trim().length > 0 ? ownerName.trim() : 'Titleholder Unspecified');
+        (ownerName && typeof ownerName === 'string' && ownerName.trim().length > 0 ? ownerName.trim() : null);
 
-      const assignedVillage = extracted?.village || village || 'Mouje Hinjawadi';
-      const assignedTaluka = extracted?.taluka || taluka || 'Mulshi';
-      const assignedDistrict = extracted?.district || 'Pune';
+      const assignedVillage =
+        extracted?.village ||
+        (village && typeof village === 'string' && village.trim().length > 0 ? village.trim() : null);
+
+      const assignedTaluka =
+        extracted?.taluka ||
+        (taluka && typeof taluka === 'string' && taluka.trim().length > 0 ? taluka.trim() : null);
+
+      const assignedDistrict =
+        extracted?.district ||
+        (district && typeof district === 'string' && district.trim().length > 0 ? district.trim() : 'Maharashtra');
+
+      const parsedArea =
+        extracted?.areaHa !== null && extracted?.areaHa !== undefined && extracted.areaHa > 0
+          ? extracted.areaHa
+          : Number(areaHa) > 0
+          ? Number(areaHa)
+          : 0;
+
+      const parsedAcres =
+        extracted?.areaAcres !== null && extracted?.areaAcres !== undefined && extracted.areaAcres > 0
+          ? extracted.areaAcres
+          : parsedArea > 0
+          ? Number((parsedArea * 2.471).toFixed(2))
+          : 0;
+
+      // Internal application IDs only (never fabricated government land identifiers)
+      const assignedCaseNo = `CASE-${new Date().getFullYear()}-MH-${Math.floor(Math.random() * 80000 + 10000)}`;
+      const newParcelId = `p-${Date.now().toString().slice(-6)}`;
+
+      // Verification checks: NEVER fabricate clearance
+      const assignedEncumbrance =
+        extracted?.encumbrances ||
+        (encumbrance && typeof encumbrance === 'string' && encumbrance.trim().length > 0
+          ? encumbrance.trim()
+          : 'Pending CERSAI & Sub-Registrar Search');
+
+      const assignedLitigation =
+        litigation && typeof litigation === 'string' && litigation.trim().length > 0
+          ? litigation.trim()
+          : 'Pending District e-Courts Record Search';
+
+      const isManualReview = classification.status === 'NEEDS_MANUAL_REVIEW';
 
       const rawParcel: Partial<Parcel> = {
         id: newParcelId,
         caseNo: assignedCaseNo,
-        surveyNo: assignedSurvey,
-        gatNo: assignedGat,
-        ulpin: assignedUlpin,
-        village: assignedVillage,
-        taluka: assignedTaluka,
+        surveyNo: assignedSurvey || 'Survey Pending Confirmation',
+        gatNo: assignedGat || 'Gat Pending Confirmation',
+        ulpin: assignedUlpin || 'Pending ULPIN Assignment',
+        village: assignedVillage || 'Village Pending Confirmation',
+        taluka: assignedTaluka || 'Taluka Pending Confirmation',
         district: assignedDistrict,
         state: stateAuthority === 'ka' ? 'Karnataka' : stateAuthority === 'up' ? 'Uttar Pradesh' : 'Maharashtra',
         areaHa: parsedArea,
-        areaAcres: Number((parsedArea * 2.471).toFixed(2)),
-        classification: extracted?.classification || 'R-Zone (Residential / Agri Transition)',
-        primaryOwner: assignedOwner,
-        jointShareInfo: 'Sole Khatedar (Aadhaar Verified)',
+        areaAcres: parsedAcres,
+        classification: extracted?.classification || 'Pending Revenue Classification',
+        primaryOwner: assignedOwner || 'Owner Pending Confirmation',
+        jointShareInfo: 'Pending Legal Heir & Khatedar Verification (Unverified)',
         tags: [
-          classification ? `Classified: ${classification.documentType}` : 'Verified via Citizen Portal',
-          classification?.requiresManualReview ? 'Requires Officer Scrutiny' : 'OCR Extracted',
+          `Classified: ${classification.documentType}`,
+          isManualReview ? 'Requires Officer Scrutiny' : 'Intake Classified',
         ],
-        verifiedDate: new Date().toISOString().split('T')[0],
-        encumbrance: extracted?.encumbrances || encumbrance || 'Nil (All bank charges satisfied on CERSAI)',
-        litigation: litigation || 'Zero civil suits detected in District e-Courts register',
-        buffer: 'Clear of irrigation canal buffer lines and CRZ regulations',
-        overlap: 'Zero overlap recorded in cadastral tippani',
+        verifiedDate: 'Pending Verification',
+        encumbrance: assignedEncumbrance,
+        litigation: assignedLitigation,
+        buffer: 'Pending GIS Buffer & Eco-sensitive Zone Check',
+        overlap: 'Pending Cadastral Tippani Overlay Reconciliation',
         readyReckonerRate: Math.round(parsedArea * 12000000),
         askingPrice: Math.round(parsedArea * 12500000),
         stampDuty: Math.round(parsedArea * 12500000 * 0.07),
-        dgpsSurveyDate: '01 Oct 2024',
-        tilrAuthority: 'TILR Pune Central',
+        dgpsSurveyDate: 'Pending Demarcation',
+        tilrAuthority: 'TILR Pending Assignment',
         documentMeta: {
           fileName,
-          serverFileName: file ? file.filename : undefined,
-          storagePath: file ? path.join('uploads', 'documents', file.filename) : undefined,
+          serverFileName: file.filename,
+          storagePath: path.join('uploads', 'documents', file.filename),
           fileSize: `${(fileSize / (1024 * 1024)).toFixed(1)} MB`,
           fileType,
           uploadedAt: new Date().toLocaleString(),
           source,
-          isDurableStorage: !!file,
+          isDurableStorage: true,
+          sha256: classification.sha256,
           classification,
         },
         override: null,
@@ -473,32 +297,37 @@ app.post('/api/parcels/upload', (req, res) => {
 
       const evalResult = evaluateParcelGates(rawParcel);
 
-      const requiresOfficerScrutiny =
-        evalResult.recommendation !== 'Pass' ||
-        classification?.requiresManualReview ||
-        classification?.status === 'NEEDS_MANUAL_REVIEW';
+      const parcelStatus = isManualReview
+        ? 'Needs Review - Officer Scrutiny Required'
+        : 'Pending Verification - Document Classified';
+
+      const registrationStatus = isManualReview
+        ? 'FLAGGED FOR MANUAL SCRUTINY'
+        : 'PENDING REVENUE SCRUTINY';
+
+      const caseStatus = isManualReview ? 'NEEDS_OFFICER_REVIEW' : 'PENDING_REVIEW';
+
+      const recommendationExplanation = isManualReview
+        ? `Document flagged for manual scrutiny: ${classification.reasons.join('; ')}`
+        : `Document classified as ${SUPPORTED_LAND_DOCUMENT_DESCRIPTIONS[classification.documentType]}. Government title search, sub-registrar search, and cadastral boundary verification pending.`;
 
       const newParcel: Parcel = {
         ...(rawParcel as any),
         score: evalResult.score,
         diligenceScore: evalResult.diligenceScore,
         gates: evalResult.gates,
-        recommendation: requiresOfficerScrutiny ? 'Needs Review' : evalResult.recommendation,
-        recommendationExplanation: requiresOfficerScrutiny
-          ? classification?.requiresManualReview
-            ? `Manual revenue scrutiny required: ${classification.reasons.join('; ')}`
-            : evalResult.recommendationExplanation
-          : evalResult.recommendationExplanation,
-        status: requiresOfficerScrutiny ? 'Needs Review - Officer Scrutiny Required' : 'PASS - Clear Title',
-        registrationStatus: requiresOfficerScrutiny ? 'PENDING OFFICER REVIEW' : 'TITLE VERIFIED',
-        caseStatus: requiresOfficerScrutiny ? 'NEEDS_OFFICER_REVIEW' : 'TITLE_VERIFIED',
+        recommendation: isManualReview ? 'Needs Review' : (evalResult.recommendation as any),
+        recommendationExplanation,
+        status: parcelStatus,
+        registrationStatus,
+        caseStatus,
       };
 
       db.createParcel(newParcel);
 
       // Update Extraction data with real extracted fields and provenance
       db.updateExtraction({
-        docRef: `712-MAH-${newParcel.taluka.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-5)}`,
+        docRef: `DOC-MAH-${(newParcel.taluka || 'REV').toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-5)}`,
         parcelId: newParcel.id,
         village: newParcel.village,
         taluka: newParcel.taluka,
@@ -508,50 +337,56 @@ app.post('/api/parcels/upload', (req, res) => {
         fields: {
           primaryOwner: {
             value: newParcel.primaryOwner,
-            marathi: newParcel.primaryOwner,
-            confidence: classification ? Math.round(classification.classificationConfidence * 100) : 95,
-            status: extracted?.ownerName ? 'AI Extracted' : 'Unverified',
-            notes: extracted?.ownerName ? 'Extracted from uploaded document text.' : 'Provided in citizen submission docket.',
+            marathi: extracted?.ownerName || newParcel.primaryOwner,
+            confidence: Math.round(classification.classificationConfidence * 100),
+            status: extracted?.ownerName ? 'AI Extracted' : 'Unverified - Confirmation Needed',
+            notes: extracted?.ownerName
+              ? 'Extracted from uploaded document visual text.'
+              : 'Field not detected; user confirmation required.',
             provenance: extracted?.ownerName ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           surveyNumber: {
             value: newParcel.surveyNo.replace('Survey No. ', ''),
-            marathi: newParcel.surveyNo,
-            confidence: classification ? Math.round(classification.classificationConfidence * 100) : 95,
-            status: extracted?.surveyNo ? 'AI Extracted' : 'Unverified',
-            notes: extracted?.surveyNo ? 'Cross-referenced against village cadastral sheet.' : 'Pending document boundary reconciliation.',
+            marathi: extracted?.surveyNo || newParcel.surveyNo,
+            confidence: Math.round(classification.classificationConfidence * 100),
+            status: extracted?.surveyNo ? 'AI Extracted' : 'Unverified - Confirmation Needed',
+            notes: extracted?.surveyNo
+              ? 'Extracted from uploaded document text.'
+              : 'Field not detected; user confirmation required.',
             provenance: extracted?.surveyNo ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           subDivision: {
-            value: extracted?.subDivision || 'Sub-division 1 (Hissa No. 1)',
-            marathi: extracted?.subDivision || 'पोट हिस्सा १',
-            confidence: 90,
-            status: 'Verified',
-            notes: 'Sub-division demarcation confirmed.',
+            value: extracted?.subDivision || 'Unspecified',
+            marathi: extracted?.subDivision || 'अनिर्दिष्ट',
+            confidence: extracted?.subDivision ? Math.round(classification.classificationConfidence * 100) : 50,
+            status: extracted?.subDivision ? 'AI Extracted' : 'Unverified',
+            notes: extracted?.subDivision ? 'Extracted hissa demarcation.' : 'Sub-division not specified in document.',
             provenance: extracted?.subDivision ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           totalArea: {
-            value: `${newParcel.areaHa} Ha (${newParcel.areaAcres} Acres)`,
-            marathi: `${newParcel.areaHa} हेक्टर`,
-            confidence: 92,
+            value: parsedArea > 0 ? `${newParcel.areaHa} Ha (${newParcel.areaAcres} Acres)` : 'Unspecified',
+            marathi: parsedArea > 0 ? `${newParcel.areaHa} हेक्टर` : 'अनिर्दिष्ट',
+            confidence: extracted?.areaHa ? Math.round(classification.classificationConfidence * 100) : 50,
             status: extracted?.areaHa ? 'AI Extracted' : 'Unverified',
-            notes: 'Area reconciled against revenue records.',
+            notes: extracted?.areaHa ? 'Area extracted from document text.' : 'Area not clearly readable in document.',
             provenance: extracted?.areaHa ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
           shareFraction: {
-            value: 'Sole Occupancy (1/1 Full Share)',
-            marathi: '१/१ पूर्ण हिस्सा',
-            confidence: 90,
-            status: 'Verified',
-            notes: 'Single owner record verified.',
+            value: 'Pending Co-parcener Verification',
+            marathi: 'तपासणी प्रलंबित',
+            confidence: 50,
+            status: 'Unverified',
+            notes: 'Coparcenary share fraction requires legal heir inquiry.',
             provenance: 'UNVERIFIED',
           },
           encumbrances: {
             value: newParcel.encumbrance,
-            marathi: 'कोणताही बोजा नाही',
-            confidence: 90,
-            status: 'Verified',
-            notes: 'CERSAI search results reconciled.',
+            marathi: extracted?.encumbrances || 'तपासणी प्रलंबित',
+            confidence: extracted?.encumbrances ? Math.round(classification.classificationConfidence * 100) : 50,
+            status: extracted?.encumbrances ? 'AI Extracted' : 'Unverified',
+            notes: extracted?.encumbrances
+              ? 'Extracted from other rights (इतर हक्क).'
+              : 'Official CERSAI search certificate not linked.',
             provenance: extracted?.encumbrances ? 'AI_EXTRACTED' : 'UNVERIFIED',
           },
         },
@@ -565,14 +400,16 @@ app.post('/api/parcels/upload', (req, res) => {
         surveyNo: newParcel.surveyNo,
         taluka: newParcel.taluka,
         applicant: newParcel.primaryOwner,
-        stage: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Automated Clearance Audit' : 'Initial Citizen Scrutiny & Document Verification',
+        stage: isManualReview
+          ? 'Manual Document Scrutiny & Discrepancy Review'
+          : 'Initial Revenue Scrutiny & Official Registry Verification',
         blockTriggers: [
           ...newParcel.gates.filter((g) => g.status === 'BLOCK' || g.status === 'WARN').map((g) => g.name),
-          ...(classification?.requiresManualReview ? [`Doc Scrutiny: ${classification.documentType}`] : []),
+          ...(classification.requiresManualReview ? [`Doc Scrutiny: ${classification.documentType}`] : []),
         ],
-        urgency: newParcel.caseStatus === 'REGISTRATION_FROZEN' ? 'Critical' : newParcel.score < 70 ? 'High' : 'Medium',
+        urgency: isManualReview ? 'High' : 'Medium',
         receivedDate: 'Just now',
-        status: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Auto-Cleared' : 'Pending Tahsildar Review',
+        status: isManualReview ? 'Pending Tahsildar Review' : 'Pending Verification Audit',
       };
       db.addOfficerQueueItem(queueItem);
 
@@ -581,21 +418,25 @@ app.post('/api/parcels/upload', (req, res) => {
         parcelId: newParcel.id,
         action: 'CASE_CREATED',
         actor: `Citizen (${newParcel.primaryOwner})`,
-        notes: `Verification case ${assignedCaseNo} created with document ${newParcel.documentMeta?.fileName}. Initial Satya score calculated: ${evalResult.score}/100. Docket queued for revenue review.`,
+        notes: `Verification request ${assignedCaseNo} registered with document ${newParcel.documentMeta?.fileName}. Initial triage score: ${evalResult.score}/100. Verification pending.`,
       });
 
       // Add notification alert
       db.addAlert({
-        type: 'success',
-        title: `Verification Request Registered: ${assignedSurvey}`,
+        type: isManualReview ? 'info' : 'success',
+        title: isManualReview
+          ? `Review Case Flagged: ${newParcel.surveyNo}`
+          : `Verification Request Registered: ${newParcel.surveyNo}`,
         time: 'Just now',
-        meta: `Case No: ${assignedCaseNo} • Status: ${newParcel.caseStatus} • Satya Score: ${newParcel.score}/100`,
+        meta: `Case No: ${assignedCaseNo} • Status: ${newParcel.caseStatus} • Score: ${newParcel.score}/100`,
         parcelId: newParcel.id,
       });
 
       res.json({
         success: true,
-        message: 'Verification request created and document processed successfully',
+        message: isManualReview
+          ? 'Document submitted and queued for officer scrutiny.'
+          : 'Document classified and verification request created successfully.',
         data: newParcel,
         classification,
       });
@@ -747,15 +588,130 @@ app.put('/api/extraction', (req, res) => {
   res.json({ success: true, data: updated });
 });
 
-app.post('/api/extraction/rescan', (req, res) => {
-  const ext = db.getExtraction();
-  const refreshed = {
-    ...ext,
-    quality: '98.5% High Confidence',
-    engine: 'Demonstration Document Extraction Pipeline (Re-scanned)',
-  };
-  db.updateExtraction(refreshed);
-  res.json({ success: true, message: 'Demonstration OCR re-scan completed', data: refreshed });
+app.post('/api/extraction/rescan', async (req, res) => {
+  try {
+    const { parcelId } = req.body || {};
+    const targetId = parcelId || db.getExtraction().parcelId;
+    const parcel = targetId ? db.getParcelById(targetId) : null;
+
+    let targetFilePath: string | null = null;
+    let fileName = 'document.pdf';
+    let mimeType = 'application/pdf';
+
+    if (parcel?.documentMeta?.serverFileName) {
+      const candidate = path.join(UPLOADS_DIR, path.basename(parcel.documentMeta.serverFileName));
+      if (fs.existsSync(candidate)) {
+        targetFilePath = candidate;
+        fileName = parcel.documentMeta.fileName || parcel.documentMeta.serverFileName;
+        mimeType = parcel.documentMeta.fileType || 'application/pdf';
+      }
+    }
+
+    if (!targetFilePath) {
+      return res.status(404).json({
+        success: false,
+        error:
+          'Original uploaded document file is unavailable on disk for re-scan. Please upload the genuine document again.',
+      });
+    }
+
+    const fileBuffer = fs.readFileSync(targetFilePath);
+    const classification = await classifyAndExtractLandDocument(fileBuffer, mimeType, fileName);
+
+    if (classification.status === 'DOCUMENT_VALIDATION_UNAVAILABLE') {
+      return res.status(503).json({
+        success: false,
+        error: 'AI Document Validation Service unavailable for re-scan. Please check GEMINI_API_KEY configuration.',
+        reasons: classification.reasons,
+        classification,
+      });
+    }
+
+    if (classification.status === 'REJECTED_NOT_LAND_DOCUMENT') {
+      return res.status(422).json({
+        success: false,
+        error: `RESCAN_REJECTED: Document re-scan determined file "${fileName}" is not a supported Maharashtra land record document.`,
+        reasons: classification.reasons,
+        classification,
+      });
+    }
+
+    // Update extraction with actual result
+    const ext = db.getExtraction();
+    const extracted = classification.extractedFields;
+    const refreshed: ExtractionData = {
+      ...ext,
+      quality: `${Math.round(classification.classificationConfidence * 100)}% Confidence (${classification.imageQuality})`,
+      engine: `Gemini Multimodal Document AI (${classification.documentType})`,
+      classification,
+      fields: {
+        ...ext.fields,
+        primaryOwner: extracted?.ownerName
+          ? {
+              ...ext.fields.primaryOwner,
+              value: extracted.ownerName,
+              marathi: extracted.ownerName,
+              confidence: Math.round(classification.classificationConfidence * 100),
+              status: 'AI Extracted',
+              notes: 'Re-extracted from document text.',
+              provenance: 'AI_EXTRACTED',
+            }
+          : ext.fields.primaryOwner,
+        surveyNumber: extracted?.surveyNo
+          ? {
+              ...ext.fields.surveyNumber,
+              value: extracted.surveyNo,
+              marathi: extracted.surveyNo,
+              confidence: Math.round(classification.classificationConfidence * 100),
+              status: 'AI Extracted',
+              notes: 'Re-extracted from document text.',
+              provenance: 'AI_EXTRACTED',
+            }
+          : ext.fields.surveyNumber,
+        subDivision: extracted?.subDivision
+          ? {
+              ...ext.fields.subDivision,
+              value: extracted.subDivision,
+              marathi: extracted.subDivision,
+              confidence: Math.round(classification.classificationConfidence * 100),
+              status: 'AI Extracted',
+              provenance: 'AI_EXTRACTED',
+            }
+          : ext.fields.subDivision,
+        totalArea: extracted?.areaHa
+          ? {
+              ...ext.fields.totalArea,
+              value: `${extracted.areaHa} Ha (${extracted.areaAcres ?? Number((extracted.areaHa * 2.471).toFixed(2))} Acres)`,
+              marathi: `${extracted.areaHa} हेक्टर`,
+              confidence: Math.round(classification.classificationConfidence * 100),
+              status: 'AI Extracted',
+              provenance: 'AI_EXTRACTED',
+            }
+          : ext.fields.totalArea,
+      },
+    };
+
+    db.updateExtraction(refreshed);
+
+    if (parcel) {
+      db.updateParcel(parcel.id, {
+        documentMeta: {
+          ...parcel.documentMeta!,
+          classification,
+        },
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Real document re-scan completed successfully.',
+      data: refreshed,
+      classification,
+    });
+  } catch (err: any) {
+    console.error('Error during re-scan:', err);
+    res.status(500).json({ success: false, error: err.message || 'Server error re-scanning document.' });
+  }
 });
 
 app.post('/api/extraction/confirm', (req, res) => {
@@ -764,27 +720,34 @@ app.post('/api/extraction/confirm', (req, res) => {
   const parcel = db.getParcelById(targetId);
 
   if (parcel) {
+    // Confirming user-reviewed OCR fields moves case to pending officer scrutiny, NOT verified legal title!
+    const nextCaseStatus =
+      parcel.caseStatus === 'NEEDS_OFFICER_REVIEW' || parcel.recommendation === 'Needs Review'
+        ? 'NEEDS_OFFICER_REVIEW'
+        : 'VERIFICATION_IN_PROGRESS';
+
     db.updateParcel(parcel.id, {
-      caseStatus: parcel.recommendation === 'Pass' ? 'TITLE_VERIFIED' : 'NEEDS_OFFICER_REVIEW',
+      caseStatus: nextCaseStatus,
+      registrationStatus: 'PENDING REVENUE SCRUTINY',
     });
 
     db.addAuditLog({
       parcelId: parcel.id,
       action: 'EXTRACTION_CONFIRMED',
       actor: 'Citizen / Auditor',
-      notes: 'Audit fields confirmed. Verification checks committed to case record.',
+      notes: 'Audit fields confirmed by user. Formal revenue verification queued (Title verification not yet granted).',
     });
 
     db.addAlert({
-      type: 'success',
+      type: 'info',
       title: `Document Review Finalized: ${parcel.surveyNo}`,
       time: 'Just now',
-      meta: 'Audit fields verified and committed to case record.',
+      meta: 'OCR fields verified by applicant; awaiting officer title search.',
       parcelId: parcel.id,
     });
   }
 
-  res.json({ success: true, message: 'Audit confirmed and case status updated' });
+  res.json({ success: true, message: 'Audit confirmed and queued for official scrutiny' });
 });
 
 // 6. Officer Override Submission

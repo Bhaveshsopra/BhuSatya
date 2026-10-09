@@ -89,50 +89,34 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
 
   const submitVerificationRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedFile) {
+      setErrorMessage(
+        'Please select an actual land document file (PDF, PNG, JPG, or TIFF) to upload. Genuine file upload is mandatory for document classification and OCR analysis.'
+      );
+      return;
+    }
+
     setIsUploading(true);
-    setUploadMessage('Transferring and safely storing document on server & evaluating 8 gates...');
+    setUploadMessage('Transferring document, validating magic bytes, and running multimodal classification...');
 
     try {
-      let response: Response;
+      const formData = new FormData();
+      formData.append('document', selectedFile);
+      formData.append('stateAuthority', selectedState);
+      if (reqSurveyNo && reqSurveyNo.trim()) formData.append('surveyNo', reqSurveyNo.trim());
+      if (reqVillage && reqVillage.trim()) formData.append('village', reqVillage.trim());
+      if (reqTaluka && reqTaluka.trim()) formData.append('taluka', reqTaluka.trim());
+      if (reqOwnerName && reqOwnerName.trim()) formData.append('ownerName', reqOwnerName.trim());
+      if (reqAreaHa && parseFloat(reqAreaHa) > 0) formData.append('areaHa', reqAreaHa.trim());
 
-      if (selectedFile) {
-        // Real multipart file upload transfer
-        const formData = new FormData();
-        formData.append('document', selectedFile);
-        formData.append('stateAuthority', selectedState);
-        formData.append('surveyNo', reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`);
-        formData.append('village', reqVillage);
-        formData.append('taluka', reqTaluka);
-        formData.append('ownerName', reqOwnerName);
-        formData.append('areaHa', reqAreaHa || '1.35');
-
-        response = await fetch('/api/parcels/upload', {
-          method: 'POST',
-          body: formData,
-        });
-      } else {
-        // Digital metadata / DigiLocker fallback
-        response = await fetch('/api/parcels/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            stateAuthority: selectedState,
-            fileName: selectedFileName || 'Scanned_712_RoR.pdf',
-            fileSize: selectedFileSize || 2100000,
-            fileType: selectedFileName?.endsWith('.png') ? 'image/png' : 'application/pdf',
-            source: 'Citizen Upload & OCR',
-            surveyNo: reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`,
-            village: reqVillage,
-            taluka: reqTaluka,
-            ownerName: reqOwnerName,
-            areaHa: parseFloat(reqAreaHa) || 1.35,
-          }),
-        });
-      }
+      const response = await fetch('/api/parcels/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
       const res = await response.json();
-      if (res.success) {
-        setUploadMessage('✓ Verification case created & queued for officer adjudication!');
+      if (response.ok && res.success && res.data) {
+        setUploadMessage('✓ Verification request created & queued for officer scrutiny!');
         onUploadSuccess(res.data);
         setShowRequestModal(false);
         setSelectedFile(null);
@@ -144,51 +128,18 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         const reasonText = res.reasons && res.reasons.length > 0 ? ` Reason: ${res.reasons.join('; ')}` : '';
         setErrorMessage(`${res.error || 'Upload failed.'}${reasonText}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMessage('Server error while submitting request.');
+      setErrorMessage(`Server error while submitting request: ${err.message || 'Connection failed'}`);
     } finally {
       setIsUploading(false);
     }
   };
 
   const handleDigiLockerFetch = async () => {
-    setIsUploading(true);
-    setUploadMessage('Connecting to DigiLocker Aadhaar e-Vault (28 States)...');
-
-    try {
-      const response = await fetch('/api/parcels/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stateAuthority: selectedState,
-          fileName: 'DigiLocker_Direct_Sync_712.pdf',
-          fileSize: 1800000,
-          fileType: 'application/pdf',
-          source: 'DigiLocker Direct Verified Pull',
-          surveyNo: 'Survey No. 204/1',
-          village: 'Baner',
-          taluka: 'Haveli',
-          ownerName: 'Ananya Sharma',
-          areaHa: 1.62,
-        }),
-      });
-
-      const res = await response.json();
-      if (res.success) {
-        setUploadMessage('✓ Successfully pulled from DigiLocker! Title verified.');
-        onUploadSuccess(res.data);
-        setTimeout(() => {
-          setUploadMessage(null);
-          onNavigateTab('extract-and-review', res.data.id);
-        }, 1200);
-      }
-    } catch (err) {
-      console.error(err);
-      setUploadMessage('DigiLocker pull failed.');
-    } finally {
-      setIsUploading(false);
-    }
+    setErrorMessage(
+      'DigiLocker e-Vault direct sync requires an authenticated citizen session. Please download your DigiLocker 7/12 or 8A PDF and upload it via the Upload Document form for real multi-stage document validation.'
+    );
   };
 
   const loadAuditHistory = async () => {

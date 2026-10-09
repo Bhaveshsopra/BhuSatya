@@ -33,22 +33,22 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
 
   // Editable form fields state (synchronized with selected parcel)
   const [ownerName, setOwnerName] = useState(
-    extraction.fields?.primaryOwner?.value || selectedParcel.primaryOwner || 'Suresh Vithalrao Deshmukh'
+    extraction.fields?.primaryOwner?.value || selectedParcel.primaryOwner || ''
   );
   const [surveyNum, setSurveyNum] = useState(
-    extraction.fields?.surveyNumber?.value || selectedParcel.surveyNo.replace('Survey No. ', '') || '142/3A'
+    extraction.fields?.surveyNumber?.value || selectedParcel.surveyNo.replace('Survey No. ', '') || ''
   );
   const [hissa, setHissa] = useState(
-    extraction.fields?.subDivision?.value || 'Sub-division 3A (Hissa No. 1)'
+    extraction.fields?.subDivision?.value || ''
   );
   const [landArea, setLandArea] = useState(
-    extraction.fields?.totalArea?.value || `${selectedParcel.areaHa} Ha (${selectedParcel.areaAcres} Acres)`
+    extraction.fields?.totalArea?.value || (selectedParcel.areaHa ? `${selectedParcel.areaHa} Ha` : '')
   );
   const [shareFraction, setShareFraction] = useState(
-    extraction.fields?.shareFraction?.value || selectedParcel.jointShareInfo || '1/2 Share (Joint Co-parcener)'
+    extraction.fields?.shareFraction?.value || selectedParcel.jointShareInfo || ''
   );
   const [encumbrances, setEncumbrances] = useState(
-    extraction.fields?.encumbrances?.value || selectedParcel.encumbrance || 'Bank of Maharashtra, Branch Hinjawadi - Charge Rs 15,00,000'
+    extraction.fields?.encumbrances?.value || selectedParcel.encumbrance || ''
   );
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -88,18 +88,31 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
 
   const handleRescan = async () => {
     setIsScanning(true);
+    setErrorMessage(null);
     try {
-      const res = await fetch('/api/extraction/rescan', { method: 'POST' });
+      const res = await fetch('/api/extraction/rescan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parcelId: selectedParcel.id }),
+      });
       const data = await res.json();
       if (data.success && data.data) {
         setExtraction(data.data);
-        setSaveMessage('✓ Demonstration OCR pass re-evaluated.');
-        setTimeout(() => setSaveMessage(null), 2500);
+        if (data.data.fields?.primaryOwner?.value) setOwnerName(data.data.fields.primaryOwner.value);
+        if (data.data.fields?.surveyNumber?.value) setSurveyNum(data.data.fields.surveyNumber.value);
+        if (data.data.fields?.totalArea?.value) setLandArea(data.data.fields.totalArea.value);
+        if (data.data.fields?.encumbrances?.value) setEncumbrances(data.data.fields.encumbrances.value);
+        setSaveMessage('✓ Document re-scanned and classified successfully.');
+        setTimeout(() => setSaveMessage(null), 3000);
+      } else {
+        const reasonText = data.reasons?.length ? ` (${data.reasons.join('; ')})` : '';
+        setErrorMessage(`${data.error || 'Re-scan failed.'}${reasonText}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setErrorMessage(`Re-scan network error: ${err.message || 'Server error'}`);
     } finally {
-      setTimeout(() => setIsScanning(false), 500);
+      setIsScanning(false);
     }
   };
 
@@ -119,16 +132,11 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
 
     setErrorMessage(null);
     setIsScanning(true);
-    setSaveMessage('Uploading document and initiating demonstration extraction...');
+    setSaveMessage('Inspecting file magic bytes and running multimodal land record classifier...');
 
     try {
       const formData = new FormData();
       formData.append('document', file);
-      formData.append('surveyNo', `Survey No. ${Math.floor(Math.random() * 120 + 40)}/${String.fromCharCode(65 + Math.floor(Math.random() * 3))}`);
-      formData.append('village', selectedParcel.village);
-      formData.append('taluka', selectedParcel.taluka);
-      formData.append('ownerName', 'Ananya Sharma');
-      formData.append('areaHa', '1.45');
       formData.append('source', 'Extract & Review Upload');
 
       const res = await fetch('/api/parcels/upload', {
@@ -136,21 +144,24 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
         body: formData,
       });
       const data = await res.json();
-      if (data.success && data.data) {
+      if (res.ok && data.success && data.data) {
         onUpdateParcel(data.data);
         onSelectParcel?.(data.data.id);
         onRefreshParcels?.();
-        setSaveMessage('✓ Document uploaded and processed into demonstration pipeline!');
-        setTimeout(() => setSaveMessage(null), 3000);
+        setSaveMessage(data.message || '✓ Document classified and verification case created!');
+        setTimeout(() => setSaveMessage(null), 3500);
       } else {
         const reasonText = data.reasons && data.reasons.length > 0 ? ` Reason: ${data.reasons.join('; ')}` : '';
         setErrorMessage(`${data.error || 'Failed to upload document.'}${reasonText}`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMessage('Failed to upload document.');
+      setErrorMessage(`Upload error: ${err.message || 'Server connection failed'}`);
     } finally {
       setIsScanning(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -684,6 +695,13 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                       </span>
                     </div>
                   )}
+
+                  {clf.evidenceLimitationNotice && (
+                    <div className="pt-1 border-t border-[#c0c9be]/30 text-[10px] text-[#555f54] italic bg-white/60 p-2 rounded-lg">
+                      <span className="font-semibold text-[#131b2e]">Validation Boundary Notice: </span>
+                      {clf.evidenceLimitationNotice}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -694,9 +712,15 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 <label className="text-xs font-bold text-[#131b2e]" htmlFor="field-owner">
                   Primary Owner Name (खातेदाराचे नाव)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#92f5a4] text-[#007233] text-[10px] font-bold">
-                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  98% High Confidence
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED'
+                    ? 'bg-[#92f5a4] text-[#007233]'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">
+                    {extraction.fields?.primaryOwner?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'help_outline'}
+                  </span>
+                  {extraction.fields?.primaryOwner?.confidence ?? 75}% • {extraction.fields?.primaryOwner?.status || 'Unverified'}
                 </span>
               </div>
               <div className="relative">
@@ -705,6 +729,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   type="text"
                   value={ownerName}
                   onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Owner name from document"
                   className="w-full h-10 px-3 pr-16 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
                 />
               </div>
@@ -716,9 +741,15 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 <label className="text-xs font-bold text-[#131b2e]" htmlFor="field-survey">
                   Survey / Gat Number (सर्व्हे / गट क्रमांक)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#92f5a4] text-[#007233] text-[10px] font-bold">
-                  <span className="material-symbols-outlined text-[12px]">verified</span>
-                  99% Exact Match
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED'
+                    ? 'bg-[#92f5a4] text-[#007233]'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">
+                    {extraction.fields?.surveyNumber?.provenance === 'AI_EXTRACTED' ? 'verified' : 'help_outline'}
+                  </span>
+                  {extraction.fields?.surveyNumber?.confidence ?? 75}% • {extraction.fields?.surveyNumber?.status || 'Unverified'}
                 </span>
               </div>
               <input
@@ -726,6 +757,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 type="text"
                 value={surveyNum}
                 onChange={(e) => setSurveyNum(e.target.value)}
+                placeholder="Survey or Gat number"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-bold text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
             </div>
@@ -736,9 +768,13 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 <label className="text-xs font-bold text-[#131b2e]" htmlFor="field-hissa">
                   Gat Sub-division / Hissa (पोट हिस्सा)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#92f5a4] text-[#007233] text-[10px] font-bold">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.subDivision?.provenance === 'AI_EXTRACTED'
+                    ? 'bg-[#92f5a4] text-[#007233]'
+                    : 'bg-slate-100 text-slate-700'
+                }`}>
                   <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  91% Verified
+                  {extraction.fields?.subDivision?.confidence ?? 50}% • {extraction.fields?.subDivision?.status || 'Pending'}
                 </span>
               </div>
               <input
@@ -746,6 +782,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 type="text"
                 value={hissa}
                 onChange={(e) => setHissa(e.target.value)}
+                placeholder="Hissa number"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
             </div>
@@ -756,9 +793,13 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 <label className="text-xs font-bold text-[#131b2e]" htmlFor="field-area">
                   Total Land Area (एकूण क्षेत्र - Hectare / Are)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#92f5a4] text-[#007233] text-[10px] font-bold">
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.totalArea?.provenance === 'AI_EXTRACTED'
+                    ? 'bg-[#92f5a4] text-[#007233]'
+                    : 'bg-slate-100 text-slate-700'
+                }`}>
                   <span className="material-symbols-outlined text-[12px]">check_circle</span>
-                  95% High Confidence
+                  {extraction.fields?.totalArea?.confidence ?? 60}% • {extraction.fields?.totalArea?.status || 'Unverified'}
                 </span>
               </div>
               <input
@@ -766,6 +807,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 type="text"
                 value={landArea}
                 onChange={(e) => setLandArea(e.target.value)}
+                placeholder="Area in Ha / Acres"
                 className="w-full h-10 px-3 rounded-lg bg-[#faf8ff] text-xs font-medium text-[#131b2e] border border-[#c0c9be] focus:outline-none focus:ring-2 focus:ring-[#006d30]"
               />
             </div>
@@ -779,7 +821,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 </label>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#703a00] text-[#ffa14e] text-[10px] font-bold">
                   <span className="material-symbols-outlined text-[12px]">priority_high</span>
-                  78% Review Required
+                  {extraction.fields?.shareFraction?.status || 'Review Required'}
                 </span>
               </div>
               <input
@@ -787,6 +829,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 type="text"
                 value={shareFraction}
                 onChange={(e) => setShareFraction(e.target.value)}
+                placeholder="Share info"
                 className="w-full h-10 px-3 rounded-lg bg-white text-xs font-medium text-[#131b2e] border border-[#703a00]/40 focus:outline-none focus:ring-2 focus:ring-[#703a00]"
               />
             </div>
@@ -798,9 +841,15 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                   <span className="material-symbols-outlined text-base text-[#703a00]">lock_clock</span>
                   Encumbrances / Bank Charges (इतर हक्क व बोजा)
                 </label>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#703a00] text-[#ffa14e] text-[10px] font-bold">
-                  <span className="material-symbols-outlined text-[12px]">error</span>
-                  74% Moderate Confidence
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED'
+                    ? 'bg-[#92f5a4] text-[#007233]'
+                    : 'bg-[#703a00] text-[#ffa14e]'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">
+                    {extraction.fields?.encumbrances?.provenance === 'AI_EXTRACTED' ? 'check_circle' : 'error'}
+                  </span>
+                  {extraction.fields?.encumbrances?.status || 'Search Required'}
                 </span>
               </div>
               <input
@@ -808,6 +857,7 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
                 type="text"
                 value={encumbrances}
                 onChange={(e) => setEncumbrances(e.target.value)}
+                placeholder="Encumbrances or bank liens"
                 className="w-full h-10 px-3 rounded-lg bg-white text-xs font-medium text-[#131b2e] border border-[#703a00]/40 focus:outline-none focus:ring-2 focus:ring-[#703a00]"
               />
             </div>
