@@ -60,17 +60,32 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
     ? 'भूखंड खरीद परामर्श'
     : 'भूखंड खरेदी सल्ला अहवाल';
 
-  const verdictBadge = isMarathi
-    ? 'सावधगिरीने पुढे जा'
-    : isHindi
-    ? 'सावधानी से आगे बढ़ें'
-    : 'PROCEED WITH CAUTION';
+  const isPass = parcel.recommendation === 'Pass' || parcel.caseStatus === 'OFFICER_SANCTIONED' || parcel.caseStatus === 'TITLE_VERIFIED';
+  const isInsufficient = parcel.recommendation === 'Insufficient Information';
+  const hasMortgage = parcel.encumbrance && !parcel.encumbrance.toLowerCase().includes('nil') && !parcel.encumbrance.toLowerCase().includes('zero');
+  const hasLitigation = parcel.litigation && !parcel.litigation.toLowerCase().includes('zero') && !parcel.litigation.toLowerCase().includes('nil');
+  const hasOverlap = parcel.overlap && !parcel.overlap.toLowerCase().includes('zero') && !parcel.overlap.toLowerCase().includes('matches 100%');
 
-  const verdictSub = isMarathi
-    ? 'सावधगिरीने पुढे जा'
-    : isHindi
-    ? 'सावधानी से आगे बढ़ें'
-    : 'सावधगिरीने पुढे जा';
+  const verdictBadgeText = isPass
+    ? (isMarathi ? 'सत्यापित स्वच्छ मालकी' : isHindi ? 'सत्यापित स्वच्छ शीर्षक' : 'CLEAR TITLE TO PROCEED')
+    : isInsufficient
+    ? (isMarathi ? 'अपूर्ण माहिती' : isHindi ? 'अपर्याप्त जानकारी' : 'INSUFFICIENT INFORMATION')
+    : (isMarathi ? 'सावधगिरीने पुढे जा' : isHindi ? 'सावधानी से आगे बढ़ें' : 'PROCEED WITH CAUTION');
+
+  const verdictBadgeClass = isPass
+    ? 'bg-[#92f5a4] text-[#007233] border border-[#007233]/30'
+    : isInsufficient
+    ? 'bg-slate-200 text-slate-800 border border-slate-300'
+    : 'bg-[#ffdcc3] text-[#2f1500] border border-amber-300';
+
+  const verdictIcon = isPass ? 'verified' : isInsufficient ? 'help_outline' : 'warning';
+  const verdictIconColor = isPass ? 'text-[#007233]' : isInsufficient ? 'text-slate-700' : 'text-[#703a00]';
+
+  const verdictDescText = isPass
+    ? 'All 8 statutory verification gates passed or sanctioned. Title is unencumbered and registration clearance is granted.'
+    : isInsufficient
+    ? 'Mandatory survey documentation or external registry links are incomplete. Conclusive diligence requires additional extracts.'
+    : (parcel.recommendationExplanation || 'Do not proceed to deed registration until existing bank charges, boundary reservations, or heir claims are cleared.');
 
   const handleDownloadPDF = () => {
     setPdfDownloaded(true);
@@ -194,18 +209,18 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
 
             {/* Verdict Container */}
             <div className="flex flex-col items-center sm:items-start text-center sm:text-left max-w-xs">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#ffdcc3] text-[#2f1500] shadow-2xs border border-amber-300">
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg shadow-2xs ${verdictBadgeClass}`}>
                 <span
-                  className="material-symbols-outlined text-[18px] text-[#703a00] font-bold"
+                  className={`material-symbols-outlined text-[18px] ${verdictIconColor} font-bold`}
                   style={{ fontVariationSettings: "'FILL' 1" }}
                 >
-                  warning
+                  {verdictIcon}
                 </span>
-                <span className="text-xs font-bold uppercase tracking-wider">{verdictBadge}</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{verdictBadgeText}</span>
               </div>
-              <span className="text-xs font-semibold text-[#703a00] mt-1">{verdictSub}</span>
+              <span className={`text-xs font-semibold ${verdictIconColor} mt-1`}>{parcel.registrationStatus}</span>
               <p className="text-xs text-[#404941] mt-1 leading-snug">
-                High title authenticity. Do NOT proceed to deed registration until existing bank lien and coparcenary claim are settled.
+                {verdictDescText}
               </p>
             </div>
           </div>
@@ -220,7 +235,10 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
             info
           </span>
           <p className="text-xs text-[#131b2e] leading-relaxed">
-            <strong>Summary Verdict:</strong> Primary ownership chain (MahaBhulekh 7/12 & Ferfar) is legally sound with valid mutation history. However, <strong>₹15,00,000 unreleased mortgage</strong> and active <strong>Civil Suit objection (No. 842/2021)</strong> represent immediate transactional liabilities that must be cured before advance disbursement.
+            <strong>Summary Verdict:</strong> Primary titleholder <strong>{parcel.primaryOwner}</strong> ({parcel.surveyNo}, {parcel.village}, {parcel.taluka}) holds registered interest with Satya Diligence Index of <strong>{parcel.score}/100</strong>.{' '}
+            {isPass
+              ? 'Ancestral lineage is unbroken, bank liens are satisfied on CERSAI, and zero civil caveat injunctions exist on record.'
+              : parcel.recommendationExplanation}
           </p>
         </div>
       </section>
@@ -258,10 +276,10 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#131b2e] leading-normal mb-2">
-                The seller is the legitimate registered title holder with unbroken 30-year ancestral succession.
+                Registered title holder <strong>{parcel.primaryOwner}</strong> ({parcel.jointShareInfo}) with continuous lineage recorded on 7/12.
               </p>
               <div className="bg-[#f2f3ff] p-2 rounded font-mono text-[11px] text-[#404941] border border-[#c0c9be]/30">
-                Khata No: 418 | Ferfar Entry: 3122 | Survey: 142/3A
+                ULPIN: {parcel.ulpin} | {parcel.surveyNo} | {parcel.gatNo}
               </div>
             </div>
             <div className="mt-4 pt-3 bg-[#f2f3ff]/60 -mx-4 -mb-4 p-4 rounded-b-xl border-t border-[#c0c9be]/30">
@@ -269,7 +287,7 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
                 What To Do Next
               </span>
               <p className="text-xs text-[#131b2e] font-medium">
-                Obtain certified copy of Mutation Entry No. 3122 from Talathi office to archive alongside sale deed.
+                Obtain certified copy of latest Mutation Entry (Ferfar) from Talathi / e-Mahabhulekh to archive alongside deed.
               </p>
             </div>
           </div>
@@ -279,30 +297,35 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
             <div>
               <div className="flex items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-[#ffdcc3] flex items-center justify-center text-[#703a00]">
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${hasMortgage ? 'bg-[#ffdcc3] text-[#703a00]' : 'bg-[#92f5a4] text-[#007233]'}`}>
                     <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                       account_balance
                     </span>
                   </span>
                   <span className="text-sm text-[#131b2e] font-bold">2. Liabilities & Mortgages</span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#ffdcc3] text-[#703a00] flex items-center gap-1 border border-amber-300">
-                  <span className="material-symbols-outlined text-[12px]">priority_high</span> Action Required
+                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold flex items-center gap-1 ${
+                  hasMortgage ? 'bg-[#ffdcc3] text-[#703a00] border border-amber-300' : 'bg-[#92f5a4] text-[#007233]'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">{hasMortgage ? 'priority_high' : 'check_circle'}</span>{' '}
+                  {hasMortgage ? 'Action Required' : 'Clear (100/100)'}
                 </span>
               </div>
               <p className="text-xs text-[#131b2e] leading-normal mb-2">
-                A ₹15 Lakh agricultural crop mortgage with Bank of Maharashtra is still active on record.
+                {parcel.encumbrance}
               </p>
               <div className="bg-[#f2f3ff] p-2 rounded font-mono text-[11px] text-[#404941] border border-[#c0c9be]/30">
-                CERSAI ID: CR-2019-98104 | Lien Holder: BoM Hinjawadi
+                Source: CERSAI Central Registry & Sub-Registrar Index-II
               </div>
             </div>
             <div className="mt-4 pt-3 bg-[#f2f3ff]/60 -mx-4 -mb-4 p-4 rounded-b-xl border-t border-[#c0c9be]/30">
-              <span className="text-[10px] uppercase text-[#703a00] font-bold tracking-wider block mb-0.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block mb-0.5 ${hasMortgage ? 'text-[#703a00]' : 'text-[#006d30]'}`}>
                 What To Do Next
               </span>
               <p className="text-xs text-[#131b2e] font-medium">
-                Require seller to provide Bank No Objection Certificate (NOC) and 7/12 Roznama clearance before giving token advance.
+                {hasMortgage
+                  ? 'Require seller to furnish official Bank No-Objection Certificate (NOC) and 7/12 Roznama clearance before giving token advance.'
+                  : 'Zero bank charges detected. Safe to proceed with financial consideration agreement.'}
               </p>
             </div>
           </div>
@@ -312,30 +335,35 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
             <div>
               <div className="flex items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-[#ffdcc3] flex items-center justify-center text-[#703a00]">
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${hasOverlap ? 'bg-[#ffdcc3] text-[#703a00]' : 'bg-[#92f5a4] text-[#007233]'}`}>
                     <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                       pin_drop
                     </span>
                   </span>
                   <span className="text-sm text-[#131b2e] font-bold">3. Boundaries & Possession</span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#ffdcc3] text-[#703a00] flex items-center gap-1 border border-amber-300">
-                  <span className="material-symbols-outlined text-[12px]">explore</span> Verify On Ground
+                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold flex items-center gap-1 ${
+                  hasOverlap ? 'bg-[#ffdcc3] text-[#703a00] border border-amber-300' : 'bg-[#92f5a4] text-[#007233]'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">{hasOverlap ? 'explore' : 'check'}</span>{' '}
+                  {hasOverlap ? 'Verify On Ground' : 'Demarcation Verified'}
                 </span>
               </div>
               <p className="text-xs text-[#131b2e] leading-normal mb-2">
-                0.02 Hectare overlap with southern boundary neighbor noted in digital cadastral map overlay.
+                Extent: <strong>{parcel.areaHa} Ha ({parcel.areaAcres} Acres)</strong>. {parcel.overlap}.
               </p>
               <div className="bg-[#f2f3ff] p-2 rounded font-mono text-[11px] text-[#404941] border border-[#c0c9be]/30">
-                Cadastral Gat: 142 | Encroachment Risk: Southern Margin (8%)
+                TILR Authority: {parcel.tilrAuthority} | Survey Date: {parcel.dgpsSurveyDate}
               </div>
             </div>
             <div className="mt-4 pt-3 bg-[#f2f3ff]/60 -mx-4 -mb-4 p-4 rounded-b-xl border-t border-[#c0c9be]/30">
-              <span className="text-[10px] uppercase text-[#703a00] font-bold tracking-wider block mb-0.5">
+              <span className={`text-[10px] uppercase font-bold tracking-wider block mb-0.5 ${hasOverlap ? 'text-[#703a00]' : 'text-[#006d30]'}`}>
                 What To Do Next
               </span>
               <p className="text-xs text-[#131b2e] font-medium">
-                Commission a government Mojani (DGPS land measurement) through the Land Records Inspector (Kankavli/Mulshi).
+                {hasOverlap
+                  ? 'Commission an official government Mojani (DGPS land measurement) through the Land Records Inspector.'
+                  : 'Cadastral polygon matches village map sheet. Proceed with standard physical boundary pegging.'}
               </p>
             </div>
           </div>
@@ -357,10 +385,10 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
                 </span>
               </div>
               <p className="text-xs text-[#131b2e] leading-normal mb-2">
-                Asking price ₹1.80 Cr is within 8% of Government Ready Reckoner circle rate (₹1.66 Cr).
+                Asking: ₹{(parcel.askingPrice / 10000000).toFixed(2)} Cr vs Ready Reckoner: ₹{(parcel.readyReckonerRate / 10000000).toFixed(2)} Cr. Stamp Duty (7%): ₹{(parcel.stampDuty / 100000).toFixed(2)} Lakh.
               </p>
               <div className="bg-[#f2f3ff] p-2 rounded font-mono text-[11px] text-[#404941] border border-[#c0c9be]/30">
-                Market Asking: ₹1.80 Cr | Govt Rate: ₹1.66 Cr | Index: Normal
+                Market: ₹{parcel.askingPrice.toLocaleString('en-IN')} | Govt RR: ₹{parcel.readyReckonerRate.toLocaleString('en-IN')}
               </div>
             </div>
             <div className="mt-4 pt-3 bg-[#f2f3ff]/60 -mx-4 -mb-4 p-4 rounded-b-xl border-t border-[#c0c9be]/30">
@@ -378,35 +406,40 @@ export const ShouldIBuyThisReport: React.FC<ShouldIBuyThisReportProps> = ({
             <div>
               <div className="flex items-center justify-between pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="w-7 h-7 rounded-lg bg-[#ffdad6] flex items-center justify-center text-[#ba1a1a]">
+                  <span className={`w-7 h-7 rounded-lg flex items-center justify-center ${hasLitigation ? 'bg-[#ffdad6] text-[#ba1a1a]' : 'bg-[#92f5a4] text-[#007233]'}`}>
                     <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                       gavel
                     </span>
                   </span>
                   <span className="text-sm text-[#131b2e] font-bold">5. Legal & Zonal Flags</span>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-[#ffdad6] text-[#ba1a1a] flex items-center gap-1 border border-[#ba1a1a]/30">
-                  <span className="material-symbols-outlined text-[12px]">block</span> High Risk
+                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold flex items-center gap-1 ${
+                  hasLitigation ? 'bg-[#ffdad6] text-[#ba1a1a] border border-[#ba1a1a]/30' : 'bg-[#92f5a4] text-[#007233]'
+                }`}>
+                  <span className="material-symbols-outlined text-[12px]">{hasLitigation ? 'block' : 'verified'}</span>{' '}
+                  {hasLitigation ? 'Active Suit Dispute' : 'Zero Litigation'}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
                 <p className="text-xs text-[#131b2e] leading-normal">
-                  A partition objection was filed in Civil Court Pune by seller's sister alleging ancestral coparcenary rights under Hindu Succession Act.
+                  {parcel.litigation}. Zonal status: <strong>{parcel.classification}</strong>. {parcel.buffer}.
                 </p>
                 <div className="bg-[#f2f3ff] p-2.5 rounded font-mono text-[11px] text-[#404941] border border-[#c0c9be]/30 space-y-1">
-                  <div>Case: Civil Suit Special No. 842/2021</div>
-                  <div>Status: Injunction Hearing Pending (Nov 2024)</div>
-                  <div>Coram: Additional Civil Judge, Senior Division Pune</div>
+                  <div>Court Registry: District Court {parcel.district}</div>
+                  <div>Injunction Status: {hasLitigation ? 'Hearing Pending' : 'Zero Restraints Recorded'}</div>
+                  <div>Zonal Rule: {parcel.classification}</div>
                 </div>
               </div>
             </div>
             <div className="mt-4 pt-3 bg-[#f2f3ff]/60 -mx-4 -mb-4 p-4 rounded-b-xl border-t border-[#c0c9be]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <span className="text-[10px] uppercase text-[#ba1a1a] font-bold tracking-wider block mb-0.5">
-                  Critical Action Required
+                <span className={`text-[10px] uppercase font-bold tracking-wider block mb-0.5 ${hasLitigation ? 'text-[#ba1a1a]' : 'text-[#006d30]'}`}>
+                  {hasLitigation ? 'Critical Action Required' : 'Succession Clearance'}
                 </span>
                 <p className="text-xs text-[#131b2e] font-medium">
-                  Require all legal heirs to execute registered Heir Consent Deed on BhuSatya portal before paying any advance.
+                  {hasLitigation
+                    ? 'Require all legal heirs to execute registered Heir Consent Deed on BhuSatya portal before paying any advance.'
+                    : 'Check digital heir consent registry for recorded coparcener approvals.'}
                 </p>
               </div>
               <button

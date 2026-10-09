@@ -1,14 +1,57 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
+import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
 import { db, Parcel, StoredCertificate } from './src/server/db.ts';
+import { OfficerQueueItem } from './src/types/index.ts';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// 1. Safe File Upload Storage Configuration (Protected from path traversal)
+const UPLOADS_DIR = path.resolve(process.cwd(), 'uploads', 'documents');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, UPLOADS_DIR);
+  },
+  filename: (_req, file, cb) => {
+    const rawExt = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
+    const safeExt = rawExt || '.pdf';
+    const serverName = `bhu_doc_${Date.now()}_${crypto.randomBytes(6).toString('hex')}${safeExt}`;
+    cb(null, serverName);
+  },
+});
+
+const uploadMiddleware = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB maximum
+  fileFilter: (_req, file, cb) => {
+    const allowedExts = ['.pdf', '.png', '.jpg', '.jpeg', '.tiff', '.tif'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedMime = [
+      'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/pjpeg',
+      'image/tiff',
+      'application/octet-stream',
+    ];
+    if (allowedExts.includes(ext) && (allowedMime.includes(file.mimetype) || !file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('INVALID_FILE_TYPE: Only PDF, PNG, JPG, or TIFF documents are permitted.'));
+    }
+  },
+});
 
 // Helper to compute explainable risk score and gates for any parcel
 function evaluateParcelGates(parcel: Partial<Parcel>): {
@@ -20,49 +63,114 @@ function evaluateParcelGates(parcel: Partial<Parcel>): {
 } {
   const gates: Parcel['gates'] = [];
 
-  // Gate 1: Lineage
+  // Gate 1: 30-Year Ancestral Lineage & Succession
   gates.push({
     id: 1,
     name: '1. Ownership Chain & 30-Year Title Search',
     status: 'PASS',
     desc: 'Unbroken ancestral succession verified across registered mutation entries.',
+    sourceSystem: 'State Land Records Mutation Register (Ferfar)',
+    isSimulated: true,
   });
 
-  // Gate 2: Encumbrance
+  // Gate 2: CERSAI Central Registry & Financial Charges
+  const encText = (parcel.encumbrance || '').trim().toLowerCase();
+  const isEncClean =
+    encText.includes('nil') ||
+    encText.includes('zero') ||
+    encText.includes('satisfied') ||
+    encText.includes('no dues') ||
+    encText.includes('clear') ||
+    encText.includes('none');
+
   const hasEncumbrance =
-    parcel.encumbrance &&
-    !parcel.encumbrance.toLowerCase().includes('nil') &&
-    !parcel.encumbrance.toLowerCase().includes('zero') &&
-    parcel.encumbrance.toLowerCase().includes('charge') ||
-    (parcel.encumbrance && parcel.encumbrance.toLowerCase().includes('hypothecation'));
-  gates.push({
-    id: 2,
-    name: '2. Mortgage & Financial Encumbrance (CERSAI)',
-    status: hasEncumbrance ? 'WARN' : 'PASS',
-    desc: hasEncumbrance
-      ? parcel.encumbrance!
-      : 'Zero unreleased bank charges or mortgage liens registered on CERSAI.',
-  });
+    !isEncClean &&
+    (encText.includes('charge') ||
+      encText.includes('mortgage') ||
+      encText.includes('hypothecation') ||
+      encText.includes('loan') ||
+      encText.includes('lien') ||
+      encText.includes('bank'));
 
-  // Gate 3: Injunctions & Litigation
+  const isEncMissing = !parcel.encumbrance || parcel.encumbrance.trim() === '';
+
+  if (isEncMissing) {
+    gates.push({
+      id: 2,
+      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
+      status: 'NOT_CONNECTED',
+      desc: 'Live CERSAI API Gateway: NOT CONNECTED (Simulation Sandbox). Official bank charge search certificate not linked.',
+      sourceSystem: 'CERSAI Central Registry Gateway',
+      isSimulated: false,
+    });
+  } else {
+    gates.push({
+      id: 2,
+      name: '2. Mortgage & Financial Encumbrance (CERSAI)',
+      status: hasEncumbrance ? 'WARN' : 'PASS',
+      desc: hasEncumbrance
+        ? parcel.encumbrance!
+        : 'Zero unreleased bank charges or mortgage liens registered on CERSAI.',
+      sourceSystem: 'CERSAI Central Registry (Demonstration Data - Gateway Not Live)',
+      isSimulated: true,
+    });
+  }
+
+  // Gate 3: e-Courts Injunctions & Pending Litigation
+  const litText = (parcel.litigation || '').trim().toLowerCase();
+  const isLitClean =
+    litText.includes('zero') ||
+    litText.includes('nil') ||
+    litText.includes('no civil') ||
+    litText.includes('clean') ||
+    litText.includes('cleared') ||
+    litText.includes('none');
+
   const hasLitigation =
-    parcel.litigation &&
-    (parcel.litigation.toLowerCase().includes('suit') ||
-      parcel.litigation.toLowerCase().includes('stay') ||
-      parcel.litigation.toLowerCase().includes('enquiry'));
-  gates.push({
-    id: 3,
-    name: '3. Court Injunctions & Pending Litigation',
-    status: hasLitigation ? 'BLOCK' : 'PASS',
-    desc: hasLitigation
-      ? parcel.litigation!
-      : 'Zero civil suits, caveats, or injunction orders found in District e-Courts register.',
-  });
+    !isLitClean &&
+    (litText.includes('suit') ||
+      litText.includes('stay') ||
+      litText.includes('injunction') ||
+      litText.includes('caveat') ||
+      litText.includes('dispute') ||
+      litText.includes('enquiry') ||
+      litText.includes('pending'));
+
+  const isLitMissing = !parcel.litigation || parcel.litigation.trim() === '';
+
+  if (isLitMissing) {
+    gates.push({
+      id: 3,
+      name: '3. Court Injunctions & Pending Litigation',
+      status: 'NOT_CONNECTED',
+      desc: 'e-Courts NJDG API Gateway: NOT CONNECTED. Automated judicial search unavailable in sandbox; manual caveat check required.',
+      sourceSystem: 'e-Courts National Judicial Data Grid (NJDG)',
+      isSimulated: false,
+    });
+  } else {
+    gates.push({
+      id: 3,
+      name: '3. Court Injunctions & Pending Litigation',
+      status: hasLitigation ? 'BLOCK' : 'PASS',
+      desc: hasLitigation
+        ? parcel.litigation!
+        : 'Zero civil suits, caveats, or injunction orders found in District e-Courts register.',
+      sourceSystem: 'e-Courts NJDG (Demonstration Sandbox Data)',
+      isSimulated: true,
+    });
+  }
 
   // Gate 4: Buffer / Restricted classification
+  const bufText = (parcel.buffer || '').trim().toLowerCase();
+  const isBufClean = bufText.includes('clear') || bufText.includes('outside') || bufText.includes('zero') || bufText.includes('none');
   const isRestricted =
-    (parcel.classification && (parcel.classification.toLowerCase().includes('restricted') || parcel.classification.toLowerCase().includes('inam') || parcel.classification.toLowerCase().includes('wakf'))) ||
-    (parcel.buffer && parcel.buffer.toLowerCase().includes('canal'));
+    (parcel.classification &&
+      (parcel.classification.toLowerCase().includes('restricted') ||
+        parcel.classification.toLowerCase().includes('inam') ||
+        parcel.classification.toLowerCase().includes('wakf') ||
+        parcel.classification.toLowerCase().includes('class-ii'))) ||
+    (!isBufClean && (bufText.includes('canal') || bufText.includes('buffer') || bufText.includes('crz') || bufText.includes('reservation')));
+
   gates.push({
     id: 4,
     name: '4. Restricted / Government Land Classification',
@@ -70,13 +178,15 @@ function evaluateParcelGates(parcel: Partial<Parcel>): {
     desc: isRestricted
       ? (parcel.buffer || 'Restricted land classification or buffer zone reservation applies.')
       : 'Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.',
+    sourceSystem: 'State Cadastral Classification Ledger (Mahabhulekh)',
+    isSimulated: true,
   });
 
   // Gate 5: Overlap
-  const hasOverlap =
-    parcel.overlap &&
-    !parcel.overlap.toLowerCase().includes('zero') &&
-    parcel.overlap.toLowerCase().includes('overlap');
+  const ovText = (parcel.overlap || '').trim().toLowerCase();
+  const isOvClean = ovText.includes('zero') || ovText.includes('nil') || ovText.includes('matches 100%') || ovText.includes('no overlap');
+  const hasOverlap = !isOvClean && ovText.includes('overlap');
+
   gates.push({
     id: 5,
     name: '5. Cadastral Boundary Overlap',
@@ -84,6 +194,8 @@ function evaluateParcelGates(parcel: Partial<Parcel>): {
     desc: hasOverlap
       ? parcel.overlap!
       : 'Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.',
+    sourceSystem: 'Cadastral GIS Tippani / DGPS Polygon Service',
+    isSimulated: true,
   });
 
   // Gate 6: Area match
@@ -92,6 +204,8 @@ function evaluateParcelGates(parcel: Partial<Parcel>): {
     name: '6. Area Match (7/12 vs Land Records Dept Tippani)',
     status: 'PASS',
     desc: `Area records match on 7/12 and cadastral map (${parcel.areaHa || 1.45} Ha).`,
+    sourceSystem: 'TILR Cadastral Area Reconciler',
+    isSimulated: true,
   });
 
   // Gate 7: Multiple sales
@@ -100,35 +214,58 @@ function evaluateParcelGates(parcel: Partial<Parcel>): {
     name: '7. Multiple Sales / Pre-existing Agreement to Sale',
     status: 'PASS',
     desc: 'No duplicate registered agreements to sale found at Sub-Registrar Office.',
+    sourceSystem: 'IGR Maharashtra Electronic Registry (e-Stepin)',
+    isSimulated: true,
   });
 
   // Gate 8: Heirs or Revenue dues
-  const hasHeirIssue = parcel.tags && parcel.tags.some((t) => t.toLowerCase().includes('heir') || t.toLowerCase().includes('signatory'));
+  const consents = parcel.id ? db.getHeirConsents(parcel.id) : [];
+  const hasObjection = consents.some((c) => c.objectionFiled || c.status === 'Rejected');
+  const hasPendingHeir = consents.some((c) => c.status === 'Pending');
+  const hasHeirIssue =
+    hasObjection ||
+    hasPendingHeir ||
+    (parcel.tags && parcel.tags.some((t) => t.toLowerCase().includes('heir') || t.toLowerCase().includes('signatory')));
+
   gates.push({
     id: 8,
     name: '8. Land Revenue Dues & Legal Heir Consent',
-    status: hasHeirIssue ? 'WARN' : 'PASS',
-    desc: hasHeirIssue
-      ? 'Pending heir signature or consent deed verification.'
+    status: hasObjection ? 'BLOCK' : hasHeirIssue ? 'WARN' : 'PASS',
+    desc: hasObjection
+      ? 'Formal caveat objection lodged by legal coparcener under Succession Act.'
+      : hasHeirIssue
+      ? 'Pending heir signature or consent deed verification from coparcener.'
       : 'All cesses cleared and statutory heir consents verified.',
+    sourceSystem: 'BhuSatya Digital Coparcener Consent Ledger',
+    isSimulated: true,
   });
 
   // Calculate explainable score:
   let score = 100;
   if (hasEncumbrance) score -= 12;
-  if (hasLitigation) score -= 15;
-  if (isRestricted) score -= 5;
-  if (hasOverlap) score -= 5;
+  if (hasLitigation) score -= 18;
+  if (isRestricted) score -= 15;
+  if (hasOverlap) score -= 10;
   if (hasHeirIssue) score -= 8;
-  score = Math.max(20, Math.min(100, score));
+  if (hasObjection) score -= 15;
+  if (isEncMissing) score -= 5;
+  if (isLitMissing) score -= 5;
+  score = Math.max(15, Math.min(100, score));
 
   const blockCount = gates.filter((g) => g.status === 'BLOCK').length;
   const warnCount = gates.filter((g) => g.status === 'WARN').length;
+  const notConnectedCount = gates.filter((g) => g.status === 'NOT_CONNECTED').length;
+
+  const isMissingEssential = !parcel.surveyNo || !parcel.primaryOwner;
 
   let recommendation: 'Pass' | 'Needs Review' | 'Insufficient Information' = 'Pass';
   let recommendationExplanation = 'All title diligence checks completed satisfactorily.';
 
-  if (blockCount > 0) {
+  if (isMissingEssential || notConnectedCount >= 2) {
+    recommendation = 'Insufficient Information';
+    recommendationExplanation = `Evidence incomplete: External registries (${notConnectedCount}) are not connected and primary survey metadata is incomplete.`;
+    score = Math.min(score, 45);
+  } else if (blockCount > 0) {
     recommendation = 'Needs Review';
     recommendationExplanation = `Automated verification detected ${blockCount} BLOCK triggers and ${warnCount} WARN triggers. Requires Officer Override or statutory clearance before deed registration.`;
   } else if (warnCount > 0) {
@@ -193,167 +330,223 @@ app.get('/api/parcels/:id', (req, res) => {
   res.json({ success: true, data: parcel });
 });
 
-// 3. Create Verification Request & Upload Document
+// 3. Create Verification Request & Upload Document (Supports multipart/form-data & JSON)
 app.post('/api/parcels/upload', (req, res) => {
-  const {
-    stateAuthority,
-    fileName,
-    fileSize,
-    fileType,
-    source,
-    surveyNo,
-    village,
-    taluka,
-    ownerName,
-    areaHa,
-    encumbrance,
-    litigation,
-  } = req.body;
+  const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
 
-  // File size validation (max 25MB)
-  if (fileSize && typeof fileSize === 'number' && fileSize > 25 * 1024 * 1024) {
-    return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
+  const processUpload = (req: express.Request, res: express.Response) => {
+    try {
+      const file = req.file;
+      const body = req.body || {};
+
+      const stateAuthority = body.stateAuthority || 'mh';
+      const surveyNo = body.surveyNo;
+      const village = body.village;
+      const taluka = body.taluka;
+      const ownerName = body.ownerName;
+      const areaHa = body.areaHa;
+      const encumbrance = body.encumbrance;
+      const litigation = body.litigation;
+
+      const fileName = file ? file.originalname : body.fileName || 'Uploaded_712_Extract.pdf';
+      const fileSize = file ? file.size : typeof body.fileSize === 'number' ? body.fileSize : 1572864;
+      const fileType = file ? file.mimetype : body.fileType || 'application/pdf';
+      const source = file ? 'Direct File Upload & Stored on Server' : body.source || 'Citizen Upload';
+
+      // File size validation (max 25MB)
+      if (fileSize > 25 * 1024 * 1024) {
+        return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
+      }
+
+      const assignedSurvey =
+        surveyNo && surveyNo.trim().length > 0
+          ? surveyNo.trim()
+          : `Survey No. ${Math.floor(Math.random() * 200 + 10)}/${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`;
+      const assignedGat = `Gat No. ${Math.floor(Math.random() * 500 + 50)}`;
+      const assignedUlpin = `27-24-0012-0${Math.floor(Math.random() * 900 + 100)}-001A`;
+      const assignedCaseNo = `CASE-${new Date().getFullYear()}-MH-${Math.floor(Math.random() * 80000 + 10000)}`;
+      const newParcelId = `p-${Date.now().toString().slice(-6)}`;
+
+      const parsedArea = Number(areaHa) > 0 ? Number(areaHa) : 1.25;
+
+      const rawParcel: Partial<Parcel> = {
+        id: newParcelId,
+        caseNo: assignedCaseNo,
+        surveyNo: assignedSurvey,
+        gatNo: assignedGat,
+        ulpin: assignedUlpin,
+        village: village || 'Mouje Hinjawadi',
+        taluka: taluka || 'Mulshi',
+        district: 'Pune',
+        state: stateAuthority === 'ka' ? 'Karnataka' : stateAuthority === 'up' ? 'Uttar Pradesh' : 'Maharashtra',
+        areaHa: parsedArea,
+        areaAcres: Number((parsedArea * 2.471).toFixed(2)),
+        classification: 'R-Zone (Residential / Agri Transition)',
+        primaryOwner: ownerName || 'Ananya Sharma',
+        jointShareInfo: 'Sole Khatedar (Aadhaar Verified)',
+        tags: ['Zero Litigation', 'No Mortgage Dues', 'Verified via Citizen Portal'],
+        verifiedDate: new Date().toISOString().split('T')[0],
+        encumbrance: encumbrance || 'Nil (All bank charges satisfied on CERSAI)',
+        litigation: litigation || 'Zero civil suits detected in District e-Courts register',
+        buffer: 'Clear of irrigation canal buffer lines and CRZ regulations',
+        overlap: 'Zero overlap recorded in cadastral tippani',
+        readyReckonerRate: Math.round(parsedArea * 12000000),
+        askingPrice: Math.round(parsedArea * 12500000),
+        stampDuty: Math.round(parsedArea * 12500000 * 0.07),
+        dgpsSurveyDate: '01 Oct 2024',
+        tilrAuthority: 'TILR Pune Central',
+        documentMeta: {
+          fileName,
+          serverFileName: file ? file.filename : undefined,
+          storagePath: file ? path.join('uploads', 'documents', file.filename) : undefined,
+          fileSize: `${(fileSize / (1024 * 1024)).toFixed(1)} MB`,
+          fileType,
+          uploadedAt: new Date().toLocaleString(),
+          source,
+          isDurableStorage: !!file,
+        },
+        override: null,
+      };
+
+      const evalResult = evaluateParcelGates(rawParcel);
+
+      const newParcel: Parcel = {
+        ...(rawParcel as any),
+        score: evalResult.score,
+        diligenceScore: evalResult.diligenceScore,
+        gates: evalResult.gates,
+        recommendation: evalResult.recommendation,
+        recommendationExplanation: evalResult.recommendationExplanation,
+        status: evalResult.recommendation === 'Pass' ? 'PASS - Clear Title' : 'Needs Review - Red Flags Detected',
+        registrationStatus: evalResult.recommendation === 'Pass' ? 'TITLE VERIFIED' : 'PENDING OFFICER REVIEW',
+        caseStatus: evalResult.recommendation === 'Pass' ? 'TITLE_VERIFIED' : 'NEEDS_OFFICER_REVIEW',
+      };
+
+      db.createParcel(newParcel);
+
+      // Update Extraction data for demonstration pipeline (clearly labelled)
+      db.updateExtraction({
+        docRef: `712-MAH-${newParcel.taluka.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-5)}`,
+        parcelId: newParcel.id,
+        village: newParcel.village,
+        taluka: newParcel.taluka,
+        district: newParcel.district,
+        source: newParcel.documentMeta?.source || 'Citizen Upload',
+        fields: {
+          primaryOwner: {
+            value: newParcel.primaryOwner,
+            marathi: newParcel.primaryOwner,
+            confidence: 96,
+            status: 'High Confidence',
+            notes: 'Extracted from uploaded 7/12 (Demonstration OCR Pipeline).',
+          },
+          surveyNumber: {
+            value: newParcel.surveyNo.replace('Survey No. ', ''),
+            marathi: newParcel.surveyNo,
+            confidence: 99,
+            status: 'Exact Match',
+            notes: 'Cross-referenced against village cadastral sheet.',
+          },
+          subDivision: {
+            value: 'Sub-division 1 (Hissa No. 1)',
+            marathi: 'पोट हिस्सा १',
+            confidence: 92,
+            status: 'Verified',
+            notes: 'Sub-division demarcation confirmed.',
+          },
+          totalArea: {
+            value: `${newParcel.areaHa} Ha (${newParcel.areaAcres} Acres)`,
+            marathi: `${newParcel.areaHa} हेक्टर`,
+            confidence: 95,
+            status: 'High Confidence',
+            notes: 'Area reconciled against revenue records.',
+          },
+          shareFraction: {
+            value: 'Sole Occupancy (1/1 Full Share)',
+            marathi: '१/१ पूर्ण हिस्सा',
+            confidence: 95,
+            status: 'Verified',
+            notes: 'Single owner record verified.',
+          },
+          encumbrances: {
+            value: newParcel.encumbrance,
+            marathi: 'कोणताही बोजा नाही',
+            confidence: 90,
+            status: 'Verified',
+            notes: 'CERSAI search results reconciled.',
+          },
+        },
+      });
+
+      // Create linked Officer Queue entry so case is immediately actionable
+      const queueItem: OfficerQueueItem = {
+        id: `oq-${Date.now()}`,
+        caseNo: assignedCaseNo,
+        parcelId: newParcel.id,
+        surveyNo: newParcel.surveyNo,
+        taluka: newParcel.taluka,
+        applicant: newParcel.primaryOwner,
+        stage: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Automated Clearance Audit' : 'Initial Citizen Scrutiny & Document Verification',
+        blockTriggers: newParcel.gates.filter((g) => g.status === 'BLOCK' || g.status === 'WARN').map((g) => g.name),
+        urgency: newParcel.caseStatus === 'REGISTRATION_FROZEN' ? 'Critical' : newParcel.score < 70 ? 'High' : 'Medium',
+        receivedDate: 'Just now',
+        status: newParcel.caseStatus === 'TITLE_VERIFIED' ? 'Auto-Cleared' : 'Pending Tahsildar Review',
+      };
+      db.addOfficerQueueItem(queueItem);
+
+      // Log in Audit Trail
+      db.addAuditLog({
+        parcelId: newParcel.id,
+        action: 'CASE_CREATED',
+        actor: `Citizen (${newParcel.primaryOwner})`,
+        notes: `Verification case ${assignedCaseNo} created with document ${newParcel.documentMeta?.fileName}. Initial Satya score calculated: ${evalResult.score}/100. Docket queued for revenue review.`,
+      });
+
+      // Add notification alert
+      db.addAlert({
+        type: 'success',
+        title: `Verification Request Registered: ${assignedSurvey}`,
+        time: 'Just now',
+        meta: `Case No: ${assignedCaseNo} • Status: ${newParcel.caseStatus} • Satya Score: ${newParcel.score}/100`,
+        parcelId: newParcel.id,
+      });
+
+      res.json({
+        success: true,
+        message: 'Verification request created and document processed successfully',
+        data: newParcel,
+      });
+    } catch (err: any) {
+      console.error('Error handling parcel upload:', err);
+      res.status(500).json({ success: false, error: err.message || 'Server error processing upload.' });
+    }
+  };
+
+  if (isMultipart) {
+    uploadMiddleware.single('document')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ success: false, error: 'File size exceeds maximum allowed limit of 25MB.' });
+        }
+        return res.status(400).json({ success: false, error: err.message || 'File upload error.' });
+      }
+      processUpload(req, res);
+    });
+  } else {
+    processUpload(req, res);
+  }
+});
+
+// Safe Document Download with Path Traversal Protection
+app.get('/api/documents/download/:filename', (req, res) => {
+  const safeFilename = path.basename(req.params.filename);
+  const filePath = path.join(UPLOADS_DIR, safeFilename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ success: false, error: 'Document not found on server.' });
   }
 
-  const assignedSurvey =
-    surveyNo && surveyNo.trim().length > 0
-      ? surveyNo.trim()
-      : `Survey No. ${Math.floor(Math.random() * 200 + 10)}/${String.fromCharCode(65 + Math.floor(Math.random() * 4))}`;
-  const assignedGat = `Gat No. ${Math.floor(Math.random() * 500 + 50)}`;
-  const assignedUlpin = `27-24-0012-0${Math.floor(Math.random() * 900 + 100)}-001A`;
-  const assignedCaseNo = `CASE-${new Date().getFullYear()}-MH-${Math.floor(Math.random() * 80000 + 10000)}`;
-  const newParcelId = `p-${Date.now().toString().slice(-6)}`;
-
-  const parsedArea = Number(areaHa) > 0 ? Number(areaHa) : 1.25;
-
-  const rawParcel: Partial<Parcel> = {
-    id: newParcelId,
-    caseNo: assignedCaseNo,
-    surveyNo: assignedSurvey,
-    gatNo: assignedGat,
-    ulpin: assignedUlpin,
-    village: village || 'Mouje Hinjawadi',
-    taluka: taluka || 'Mulshi',
-    district: 'Pune',
-    state: stateAuthority === 'ka' ? 'Karnataka' : stateAuthority === 'up' ? 'Uttar Pradesh' : 'Maharashtra',
-    areaHa: parsedArea,
-    areaAcres: Number((parsedArea * 2.471).toFixed(2)),
-    classification: 'R-Zone (Residential / Agri Transition)',
-    primaryOwner: ownerName || 'Ananya Sharma',
-    jointShareInfo: 'Sole Khatedar (Aadhaar Verified)',
-    tags: ['Zero Litigation', 'No Mortgage Dues', 'Verified via Citizen Portal'],
-    verifiedDate: new Date().toISOString().split('T')[0],
-    encumbrance: encumbrance || 'Nil (All bank charges satisfied on CERSAI)',
-    litigation: litigation || 'Zero civil suits detected in District e-Courts register',
-    buffer: 'Clear of irrigation canal buffer lines and CRZ regulations',
-    overlap: 'Zero overlap recorded in cadastral tippani',
-    readyReckonerRate: Math.round(parsedArea * 12000000),
-    askingPrice: Math.round(parsedArea * 12500000),
-    stampDuty: Math.round(parsedArea * 12500000 * 0.07),
-    dgpsSurveyDate: '01 Oct 2024',
-    tilrAuthority: 'TILR Pune Central',
-    documentMeta: {
-      fileName: fileName || 'Uploaded_712_Extract.pdf',
-      fileSize: fileSize ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB` : '1.5 MB',
-      fileType: fileType || 'application/pdf',
-      uploadedAt: new Date().toLocaleString(),
-      source: source || 'Uploaded Scanned 7/12',
-    },
-    override: null,
-  };
-
-  const evalResult = evaluateParcelGates(rawParcel);
-
-  const newParcel: Parcel = {
-    ...(rawParcel as any),
-    score: evalResult.score,
-    diligenceScore: evalResult.diligenceScore,
-    gates: evalResult.gates,
-    recommendation: evalResult.recommendation,
-    recommendationExplanation: evalResult.recommendationExplanation,
-    status: evalResult.recommendation === 'Pass' ? 'PASS - Clear Title' : 'Needs Review - Red Flags Detected',
-    registrationStatus: evalResult.recommendation === 'Pass' ? 'TITLE VERIFIED' : 'PENDING OFFICER REVIEW',
-    caseStatus: evalResult.recommendation === 'Pass' ? 'TITLE_VERIFIED' : 'NEEDS_OFFICER_REVIEW',
-  };
-
-  db.createParcel(newParcel);
-
-  // Update Extraction data for demonstration pipeline
-  db.updateExtraction({
-    docRef: `712-MAH-${newParcel.taluka.toUpperCase().slice(0, 3)}-${Date.now().toString().slice(-5)}`,
-    parcelId: newParcel.id,
-    village: newParcel.village,
-    taluka: newParcel.taluka,
-    district: newParcel.district,
-    source: newParcel.documentMeta?.source || 'Citizen Upload',
-    fields: {
-      primaryOwner: {
-        value: newParcel.primaryOwner,
-        marathi: newParcel.primaryOwner,
-        confidence: 96,
-        status: 'High Confidence',
-        notes: 'Extracted from uploaded 7/12 (Demonstration OCR Pipeline).',
-      },
-      surveyNumber: {
-        value: newParcel.surveyNo.replace('Survey No. ', ''),
-        marathi: newParcel.surveyNo,
-        confidence: 99,
-        status: 'Exact Match',
-        notes: 'Cross-referenced against village cadastral sheet.',
-      },
-      subDivision: {
-        value: 'Sub-division 1 (Hissa No. 1)',
-        marathi: 'पोट हिस्सा १',
-        confidence: 92,
-        status: 'Verified',
-        notes: 'Sub-division demarcation confirmed.',
-      },
-      totalArea: {
-        value: `${newParcel.areaHa} Ha (${newParcel.areaAcres} Acres)`,
-        marathi: `${newParcel.areaHa} हेक्टर`,
-        confidence: 95,
-        status: 'High Confidence',
-        notes: 'Area reconciled against revenue records.',
-      },
-      shareFraction: {
-        value: 'Sole Occupancy (1/1 Full Share)',
-        marathi: '१/१ पूर्ण हिस्सा',
-        confidence: 95,
-        status: 'Verified',
-        notes: 'Single owner record verified.',
-      },
-      encumbrances: {
-        value: newParcel.encumbrance,
-        marathi: 'कोणताही बोजा नाही',
-        confidence: 90,
-        status: 'Verified',
-        notes: 'CERSAI search results reconciled.',
-      },
-    },
-  });
-
-  // Log in Audit Trail
-  db.addAuditLog({
-    parcelId: newParcel.id,
-    action: 'CASE_CREATED',
-    actor: 'Citizen (Ananya Sharma)',
-    notes: `Verification case ${assignedCaseNo} created with document ${newParcel.documentMeta?.fileName}. Initial Satya score calculated: ${evalResult.score}/100.`,
-  });
-
-  // Add notification alert
-  db.addAlert({
-    type: 'success',
-    title: `Verification Request Registered: ${assignedSurvey}`,
-    time: 'Just now',
-    meta: `Case No: ${assignedCaseNo} • Status: ${newParcel.caseStatus} • Satya Score: ${newParcel.score}/100`,
-    parcelId: newParcel.id,
-  });
-
-  res.json({
-    success: true,
-    message: 'Verification request created and document processed successfully',
-    data: newParcel,
-  });
+  res.download(filePath, safeFilename);
 });
 
 // 4. Re-evaluate Verification Gates

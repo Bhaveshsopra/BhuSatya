@@ -18,6 +18,17 @@ export interface AuditLogEntry {
   notes: string;
 }
 
+export type GateStatus = 'PASS' | 'WARN' | 'BLOCK' | 'NOT_CONNECTED';
+
+export interface GateCheck {
+  id: number;
+  name: string;
+  status: GateStatus;
+  desc: string;
+  sourceSystem?: string;
+  isSimulated?: boolean;
+}
+
 export interface StoredCertificate {
   certId: string;
   parcelId: string;
@@ -35,6 +46,8 @@ export interface StoredCertificate {
   certHash: string;
   status: 'ISSUED' | 'REVOKED';
   eligibilityNotes: string;
+  isDemonstrationCert?: boolean;
+  sha256Verified?: boolean;
 }
 
 export interface Parcel {
@@ -76,13 +89,13 @@ export interface Parcel {
     fileType: string;
     uploadedAt: string;
     source: string;
+    storedPath?: string;
+    serverFileName?: string;
+    storagePath?: string;
+    isDurableStorage?: boolean;
+    sha256?: string;
   };
-  gates: Array<{
-    id: number;
-    name: string;
-    status: 'PASS' | 'WARN' | 'BLOCK';
-    desc: string;
-  }>;
+  gates: GateCheck[];
   override?: {
     justification: string;
     officerName: string;

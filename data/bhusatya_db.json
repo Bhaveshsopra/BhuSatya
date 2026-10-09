@@ -1,6 +1,215 @@
 {
   "parcels": [
     {
+      "id": "p-255516",
+      "caseNo": "CASE-2026-MH-34262",
+      "surveyNo": "Survey No. 99/2",
+      "gatNo": "Gat No. 327",
+      "ulpin": "27-24-0012-0460-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 1.85,
+      "areaAcres": 4.57,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Ramesh Kulkarni",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Zero Litigation",
+        "No Mortgage Dues",
+        "Verified via Citizen Portal"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 22200000,
+      "askingPrice": 23125000,
+      "stampDuty": 1618750,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "Uploaded_712_Extract.pdf",
+        "fileSize": "1.5 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "10/9/2026, 8:40:55 AM",
+        "source": "Citizen Upload",
+        "isDurableStorage": false
+      },
+      "override": null,
+      "score": 100,
+      "diligenceScore": 100,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries.",
+          "sourceSystem": "State Land Records Mutation Register (Ferfar)",
+          "isSimulated": true
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI.",
+          "sourceSystem": "CERSAI Central Registry (Demonstration Data - Gateway Not Live)",
+          "isSimulated": true
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "PASS",
+          "desc": "Zero civil suits, caveats, or injunction orders found in District e-Courts register.",
+          "sourceSystem": "e-Courts NJDG (Demonstration Sandbox Data)",
+          "isSimulated": true
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "PASS",
+          "desc": "Freehold private revenue land. Outside all eco-sensitive & canal buffer reservations.",
+          "sourceSystem": "State Cadastral Classification Ledger (Mahabhulekh)",
+          "isSimulated": true
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet.",
+          "sourceSystem": "Cadastral GIS Tippani / DGPS Polygon Service",
+          "isSimulated": true
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (1.85 Ha).",
+          "sourceSystem": "TILR Cadastral Area Reconciler",
+          "isSimulated": true
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office.",
+          "sourceSystem": "IGR Maharashtra Electronic Registry (e-Stepin)",
+          "isSimulated": true
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified.",
+          "sourceSystem": "BhuSatya Digital Coparcener Consent Ledger",
+          "isSimulated": true
+        }
+      ],
+      "recommendation": "Pass",
+      "recommendationExplanation": "All title diligence checks completed satisfactorily.",
+      "status": "PASS - Clear Title",
+      "registrationStatus": "TITLE VERIFIED",
+      "caseStatus": "TITLE_VERIFIED"
+    },
+    {
+      "id": "p-980681",
+      "caseNo": "CASE-2026-MH-61170",
+      "surveyNo": "Survey No. 78/4",
+      "gatNo": "Gat No. 154",
+      "ulpin": "27-24-0012-0159-001A",
+      "village": "Mouje Hinjawadi",
+      "taluka": "Mulshi",
+      "district": "Pune",
+      "state": "Maharashtra",
+      "areaHa": 1.15,
+      "areaAcres": 2.84,
+      "classification": "R-Zone (Residential / Agri Transition)",
+      "primaryOwner": "Ananya Sharma",
+      "jointShareInfo": "Sole Khatedar (Aadhaar Verified)",
+      "tags": [
+        "Zero Litigation",
+        "No Mortgage Dues",
+        "Verified via Citizen Portal"
+      ],
+      "verifiedDate": "2026-10-09",
+      "encumbrance": "Nil (All bank charges satisfied on CERSAI)",
+      "litigation": "Zero civil suits detected in District e-Courts register",
+      "buffer": "Clear of irrigation canal buffer lines and CRZ regulations",
+      "overlap": "Zero overlap recorded in cadastral tippani",
+      "readyReckonerRate": 13800000,
+      "askingPrice": 14375000,
+      "stampDuty": 1006250,
+      "dgpsSurveyDate": "01 Oct 2024",
+      "tilrAuthority": "TILR Pune Central",
+      "documentMeta": {
+        "fileName": "Image 7.png",
+        "fileSize": "1.5 MB",
+        "fileType": "application/pdf",
+        "uploadedAt": "10/9/2026, 8:19:40 AM",
+        "source": "Uploaded Scanned 7/12"
+      },
+      "override": null,
+      "score": 80,
+      "diligenceScore": 80,
+      "gates": [
+        {
+          "id": 1,
+          "name": "1. Ownership Chain & 30-Year Title Search",
+          "status": "PASS",
+          "desc": "Unbroken ancestral succession verified across registered mutation entries."
+        },
+        {
+          "id": 2,
+          "name": "2. Mortgage & Financial Encumbrance (CERSAI)",
+          "status": "PASS",
+          "desc": "Zero unreleased bank charges or mortgage liens registered on CERSAI."
+        },
+        {
+          "id": 3,
+          "name": "3. Court Injunctions & Pending Litigation",
+          "status": "BLOCK",
+          "desc": "Zero civil suits detected in District e-Courts register"
+        },
+        {
+          "id": 4,
+          "name": "4. Restricted / Government Land Classification",
+          "status": "BLOCK",
+          "desc": "Clear of irrigation canal buffer lines and CRZ regulations"
+        },
+        {
+          "id": 5,
+          "name": "5. Cadastral Boundary Overlap",
+          "status": "PASS",
+          "desc": "Boundary demarcation verified. DGPS survey polygon matches 100% with village map sheet."
+        },
+        {
+          "id": 6,
+          "name": "6. Area Match (7/12 vs Land Records Dept Tippani)",
+          "status": "PASS",
+          "desc": "Area records match on 7/12 and cadastral map (1.15 Ha)."
+        },
+        {
+          "id": 7,
+          "name": "7. Multiple Sales / Pre-existing Agreement to Sale",
+          "status": "PASS",
+          "desc": "No duplicate registered agreements to sale found at Sub-Registrar Office."
+        },
+        {
+          "id": 8,
+          "name": "8. Land Revenue Dues & Legal Heir Consent",
+          "status": "PASS",
+          "desc": "All cesses cleared and statutory heir consents verified."
+        }
+      ],
+      "recommendation": "Needs Review",
+      "recommendationExplanation": "Automated verification detected 2 BLOCK triggers and 0 WARN triggers. Requires Officer Override or statutory clearance before deed registration.",
+      "status": "Needs Review - Red Flags Detected",
+      "registrationStatus": "PENDING OFFICER REVIEW",
+      "caseStatus": "NEEDS_OFFICER_REVIEW"
+    },
+    {
       "id": "p-834693",
       "caseNo": "CASE-2026-MH-30159",
       "surveyNo": "Survey No. 301/2B",
@@ -111,10 +320,10 @@
       "classification": "R-Zone (Res. Convertible / Agri)",
       "primaryOwner": "Suresh Vithalrao Deshmukh",
       "jointShareInfo": "Joint Share (2 Heirs)",
-      "score": 68,
-      "diligenceScore": 68,
-      "status": "Needs Review - 2 Red Flags Detected",
-      "registrationStatus": "REGISTRATION FROZEN",
+      "score": 83,
+      "diligenceScore": 83,
+      "status": "PASS - Clear Title (All Heirs Consented)",
+      "registrationStatus": "CONSENT COMPLETE",
       "caseStatus": "NEEDS_OFFICER_REVIEW",
       "recommendation": "Needs Review",
       "recommendationExplanation": "Active civil suit (No. 842/2021) and 30m canal buffer overlap require Divisional Commissioner / Officer Override under Sec. 34 MLRC before registry clearance.",
@@ -207,15 +416,15 @@
       "classification": "Agricultural / Semi-Urban",
       "primaryOwner": "Dattatray Anant Sharma & Legal Heirs",
       "jointShareInfo": "Coparcenary Family Land",
-      "score": 76,
-      "diligenceScore": 76,
-      "status": "Needs Review - Pending Heir Consent",
-      "registrationStatus": "HEIR CONSENT INCOMPLETE",
+      "score": 91,
+      "diligenceScore": 91,
+      "status": "PASS - Clear Title (All Heirs Consented)",
+      "registrationStatus": "CONSENT COMPLETE",
       "caseStatus": "PENDING_REVIEW",
       "recommendation": "Needs Review",
       "recommendationExplanation": "2 of 3 legal heirs have executed e-Consent deeds. Smt. Savita Kadam pending response before certificate eligibility.",
       "tags": [
-        "2/3 Heirs Signed",
+        "All Legal Heirs Consented",
         "Civil Suit Inactive",
         "Pending: 1 signatory"
       ],
@@ -386,9 +595,9 @@
     }
   ],
   "extraction": {
-    "docRef": "712-MAH-MUL-34731",
-    "parcelId": "p-834693",
-    "source": "Uploaded Scanned 7/12",
+    "docRef": "712-MAH-MUL-55518",
+    "parcelId": "p-255516",
+    "source": "Citizen Upload",
     "engine": "Indic-BERT v4.3 + Google Vision Transformer",
     "quality": "98.1% High Confidence",
     "village": "Mouje Hinjawadi",
@@ -396,15 +605,15 @@
     "district": "Pune",
     "fields": {
       "primaryOwner": {
-        "value": "Bhavesh Sopra",
-        "marathi": "Bhavesh Sopra",
+        "value": "Ramesh Kulkarni",
+        "marathi": "Ramesh Kulkarni",
         "confidence": 96,
         "status": "High Confidence",
         "notes": "Extracted from uploaded 7/12 (Demonstration OCR Pipeline)."
       },
       "surveyNumber": {
-        "value": "301/2B",
-        "marathi": "Survey No. 301/2B",
+        "value": "99/2",
+        "marathi": "Survey No. 99/2",
         "confidence": 99,
         "status": "Exact Match",
         "notes": "Cross-referenced against village cadastral sheet."
@@ -417,8 +626,8 @@
         "notes": "Sub-division demarcation confirmed."
       },
       "totalArea": {
-        "value": "2.1 Ha (5.19 Acres)",
-        "marathi": "2.1 हेक्टर",
+        "value": "1.85 Ha (4.57 Acres)",
+        "marathi": "1.85 हेक्टर",
         "confidence": 95,
         "status": "High Confidence",
         "notes": "Area reconciled against revenue records."
@@ -470,10 +679,10 @@
       "name": "Smt. Savita Kadam (née Sharma)",
       "relation": "Daughter / Married Heir",
       "aadhaarMasked": "•••• •••• 7105",
-      "status": "Pending",
-      "timestamp": "Pending Invite Response",
-      "tokenId": "INV-PUN-9921",
-      "authMethod": "SMS Link Dispatched",
+      "status": "Approved",
+      "timestamp": "Just now",
+      "tokenId": "C-DAC#25033",
+      "authMethod": "UIDAI OTP (Aadhaar Linked - eSign Verified)",
       "objectionFiled": false
     },
     {
@@ -482,15 +691,55 @@
       "name": "Ramesh Vithalrao Deshmukh",
       "relation": "Brother / Co-parcener",
       "aadhaarMasked": "•••• •••• 4418",
-      "status": "Pending",
-      "timestamp": "Pending Heir Say",
-      "tokenId": "INV-MUL-4102",
-      "authMethod": "Notice Issued by Registrar",
+      "status": "Approved",
+      "timestamp": "Just now",
+      "tokenId": "C-DAC#16953",
+      "authMethod": "UIDAI OTP (Aadhaar Linked - eSign Verified)",
       "objectionFiled": true,
       "objectionReason": "Special Civil Suit 842/2021 pending partition before Senior Civil Judge Pune"
     }
   ],
   "alerts": [
+    {
+      "id": "alt-1791535255521",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 99/2",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-34262 • Status: TITLE_VERIFIED • Satya Score: 100/100",
+      "parcelId": "p-255516"
+    },
+    {
+      "id": "alt-1791534989143",
+      "type": "success",
+      "title": "All Heir Consents Completed: Survey No. 142/3A",
+      "time": "Just now",
+      "meta": "All registered coparceners have approved the transfer.",
+      "parcelId": "p-142-3a"
+    },
+    {
+      "id": "alt-1791534984852",
+      "type": "success",
+      "title": "All Heir Consents Completed: Survey No. 89/1B",
+      "time": "Just now",
+      "meta": "All registered coparceners have approved the transfer.",
+      "parcelId": "p-89-1b"
+    },
+    {
+      "id": "alt-1791534956391",
+      "type": "success",
+      "title": "Document Review Finalized: Survey No. 78/4",
+      "time": "Just now",
+      "meta": "Audit fields verified and committed to case record.",
+      "parcelId": "p-980681"
+    },
+    {
+      "id": "alt-1791533980690",
+      "type": "success",
+      "title": "Verification Request Registered: Survey No. 78/4",
+      "time": "Just now",
+      "meta": "Case No: CASE-2026-MH-61170 • Status: NEEDS_OFFICER_REVIEW • Satya Score: 80/100",
+      "parcelId": "p-980681"
+    },
     {
       "id": "alt-1791533834733",
       "type": "success",
@@ -533,6 +782,19 @@
     }
   ],
   "officerQueue": [
+    {
+      "id": "oq-1791535255519",
+      "caseNo": "CASE-2026-MH-34262",
+      "parcelId": "p-255516",
+      "surveyNo": "Survey No. 99/2",
+      "taluka": "Mulshi",
+      "applicant": "Ramesh Kulkarni",
+      "stage": "Automated Clearance Audit",
+      "blockTriggers": [],
+      "urgency": "Medium",
+      "receivedDate": "Just now",
+      "status": "Auto-Cleared"
+    },
     {
       "id": "oq-1",
       "caseNo": "REV-MUL-2024-4410",
@@ -581,6 +843,62 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1791535255520-440",
+      "timestamp": "2026-10-09T08:40:55.520Z",
+      "parcelId": "p-255516",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Ramesh Kulkarni)",
+      "notes": "Verification case CASE-2026-MH-34262 created with document Uploaded_712_Extract.pdf. Initial Satya score calculated: 100/100. Docket queued for revenue review."
+    },
+    {
+      "id": "log-1791534989141-445",
+      "timestamp": "2026-10-09T08:36:29.141Z",
+      "parcelId": "p-142-3a",
+      "action": "HEIR_CONSENT_SIGNED",
+      "actor": "Ramesh Vithalrao Deshmukh",
+      "notes": "Aadhaar OTP authenticated. Token ID: C-DAC#16953"
+    },
+    {
+      "id": "log-1791534984849-825",
+      "timestamp": "2026-10-09T08:36:24.849Z",
+      "parcelId": "p-89-1b",
+      "action": "HEIR_CONSENT_SIGNED",
+      "actor": "Smt. Savita Kadam (née Sharma)",
+      "notes": "Aadhaar OTP authenticated. Token ID: C-DAC#25033"
+    },
+    {
+      "id": "log-1791534956503-836",
+      "timestamp": "2026-10-09T08:35:56.503Z",
+      "parcelId": "p-980681",
+      "action": "VERIFICATION_EVALUATED",
+      "actor": "DILRMP Rules Engine v4.2",
+      "notes": "Re-evaluated 8 verification gates. Score: 80/100. Recommendation: Needs Review."
+    },
+    {
+      "id": "log-1791534956390-385",
+      "timestamp": "2026-10-09T08:35:56.390Z",
+      "parcelId": "p-980681",
+      "action": "EXTRACTION_CONFIRMED",
+      "actor": "Citizen / Auditor",
+      "notes": "Audit fields confirmed. Verification checks committed to case record."
+    },
+    {
+      "id": "log-1791534956281-848",
+      "timestamp": "2026-10-09T08:35:56.281Z",
+      "parcelId": "p-980681",
+      "action": "EXTRACTION_REVIEWED",
+      "actor": "Citizen / Auditor",
+      "notes": "Reviewed and corrected extracted fields. Document values synchronized to case record."
+    },
+    {
+      "id": "log-1791533980690-5",
+      "timestamp": "2026-10-09T08:19:40.690Z",
+      "parcelId": "p-980681",
+      "action": "CASE_CREATED",
+      "actor": "Citizen (Ananya Sharma)",
+      "notes": "Verification case CASE-2026-MH-61170 created with document Image 7.png. Initial Satya score calculated: 80/100."
+    },
     {
       "id": "log-1791533834733-506",
       "timestamp": "2026-10-09T08:17:14.733Z",

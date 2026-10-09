@@ -478,7 +478,7 @@ Signatory: Shri Rajeshwar Rao, IAS - Divisional Commissioner
                 <h2 className="text-sm font-bold text-[#131b2e]">8-Gate AI Registry Verification</h2>
               </div>
               <span className="px-2 py-0.5 rounded bg-[#eaedff] text-[#404941] text-[11px] font-semibold">
-                Tri-State Evaluator (PASS / WARN / BLOCK)
+                Quad-State Evaluator (PASS / WARN / BLOCK / NOT_CONNECTED)
               </span>
             </div>
 
@@ -486,21 +486,26 @@ Signatory: Shri Rajeshwar Rao, IAS - Divisional Commissioner
               {parcel.gates.map((gate) => {
                 const isPass = gate.status === 'PASS';
                 const isWarn = gate.status === 'WARN';
+                const isNotConnected = gate.status === 'NOT_CONNECTED';
 
                 const bgClass = isPass
                   ? 'bg-[#f2f3ff]'
                   : isWarn
                   ? 'bg-[#ffdcc3]/30 border border-amber-300'
+                  : isNotConnected
+                  ? 'bg-slate-50 border border-slate-300'
                   : 'bg-[#ffdad6]/40 border border-[#ba1a1a]/30';
 
                 const badgeBg = isPass
                   ? 'bg-[#92f5a4] text-[#007233]'
                   : isWarn
                   ? 'bg-[#ffdcc3] text-[#2f1500]'
+                  : isNotConnected
+                  ? 'bg-slate-200 text-slate-700 border border-slate-300'
                   : 'bg-[#ba1a1a] text-white';
 
-                const icon = isPass ? 'verified_user' : isWarn ? 'warning' : 'gavel';
-                const iconColor = isPass ? 'text-[#006d30]' : isWarn ? 'text-[#703a00]' : 'text-[#ba1a1a]';
+                const icon = isPass ? 'verified_user' : isWarn ? 'warning' : isNotConnected ? 'cloud_off' : 'gavel';
+                const iconColor = isPass ? 'text-[#006d30]' : isWarn ? 'text-[#703a00]' : isNotConnected ? 'text-slate-500' : 'text-[#ba1a1a]';
 
                 return (
                   <div
@@ -512,12 +517,19 @@ Signatory: Shri Rajeshwar Rao, IAS - Divisional Commissioner
                         {icon}
                       </span>
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-[#131b2e]">{gate.name}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-[#131b2e]">{gate.name}</span>
+                          {gate.sourceSystem && (
+                            <span className="text-[10px] text-[#717970] bg-white/70 px-1.5 py-0.5 rounded border border-[#c0c9be]/50">
+                              {gate.sourceSystem}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-[#404941] leading-relaxed">{gate.desc}</p>
                       </div>
                     </div>
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase shrink-0 ${badgeBg}`}>
-                      {gate.status}
+                      {gate.status === 'NOT_CONNECTED' ? 'NOT CONNECTED' : gate.status}
                     </span>
                   </div>
                 );

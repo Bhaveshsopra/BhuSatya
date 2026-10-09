@@ -122,20 +122,18 @@ export const ExtractAndReview: React.FC<ExtractAndReviewProps> = ({
     setSaveMessage('Uploading document and initiating demonstration extraction...');
 
     try {
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('surveyNo', `Survey No. ${Math.floor(Math.random() * 120 + 40)}/${String.fromCharCode(65 + Math.floor(Math.random() * 3))}`);
+      formData.append('village', selectedParcel.village);
+      formData.append('taluka', selectedParcel.taluka);
+      formData.append('ownerName', 'Ananya Sharma');
+      formData.append('areaHa', '1.45');
+      formData.append('source', 'Extract & Review Upload');
+
       const res = await fetch('/api/parcels/upload', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileSize: file.size,
-          fileType: file.type || 'application/pdf',
-          source: 'Extract & Review Upload',
-          surveyNo: `Survey No. ${Math.floor(Math.random() * 120 + 40)}/${String.fromCharCode(65 + Math.floor(Math.random() * 3))}`,
-          village: selectedParcel.village,
-          taluka: selectedParcel.taluka,
-          ownerName: 'Ananya Sharma',
-          areaHa: 1.45,
-        }),
+        body: formData,
       });
       const data = await res.json();
       if (data.success && data.data) {

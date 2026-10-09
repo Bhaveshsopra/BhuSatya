@@ -36,6 +36,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const [reqTaluka, setReqTaluka] = useState('Mulshi');
   const [reqAreaHa, setReqAreaHa] = useState('1.35');
   const [reqOwnerName, setReqOwnerName] = useState('Ananya Sharma');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<number | null>(null);
 
@@ -77,6 +78,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
     }
 
     setErrorMessage(null);
+    setSelectedFile(file);
     setSelectedFileName(file.name);
     setSelectedFileSize(file.size);
     if (!reqSurveyNo) {
@@ -88,31 +90,52 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
   const submitVerificationRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUploading(true);
-    setUploadMessage('Processing document via Demonstration Extraction Pipeline & evaluating 8 gates...');
+    setUploadMessage('Transferring and safely storing document on server & evaluating 8 gates...');
 
     try {
-      const response = await fetch('/api/parcels/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stateAuthority: selectedState,
-          fileName: selectedFileName || 'Scanned_712_RoR.pdf',
-          fileSize: selectedFileSize || 2100000,
-          fileType: selectedFileName?.endsWith('.png') ? 'image/png' : 'application/pdf',
-          source: 'Citizen Upload & OCR',
-          surveyNo: reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`,
-          village: reqVillage,
-          taluka: reqTaluka,
-          ownerName: reqOwnerName,
-          areaHa: parseFloat(reqAreaHa) || 1.35,
-        }),
-      });
+      let response: Response;
+
+      if (selectedFile) {
+        // Real multipart file upload transfer
+        const formData = new FormData();
+        formData.append('document', selectedFile);
+        formData.append('stateAuthority', selectedState);
+        formData.append('surveyNo', reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`);
+        formData.append('village', reqVillage);
+        formData.append('taluka', reqTaluka);
+        formData.append('ownerName', reqOwnerName);
+        formData.append('areaHa', reqAreaHa || '1.35');
+
+        response = await fetch('/api/parcels/upload', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Digital metadata / DigiLocker fallback
+        response = await fetch('/api/parcels/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            stateAuthority: selectedState,
+            fileName: selectedFileName || 'Scanned_712_RoR.pdf',
+            fileSize: selectedFileSize || 2100000,
+            fileType: selectedFileName?.endsWith('.png') ? 'image/png' : 'application/pdf',
+            source: 'Citizen Upload & OCR',
+            surveyNo: reqSurveyNo || `Survey No. ${Math.floor(Math.random() * 150 + 50)}/1A`,
+            village: reqVillage,
+            taluka: reqTaluka,
+            ownerName: reqOwnerName,
+            areaHa: parseFloat(reqAreaHa) || 1.35,
+          }),
+        });
+      }
 
       const res = await response.json();
       if (res.success) {
-        setUploadMessage('✓ Verification case created! Results recorded to portfolio.');
+        setUploadMessage('✓ Verification case created & queued for officer adjudication!');
         onUploadSuccess(res.data);
         setShowRequestModal(false);
+        setSelectedFile(null);
         setTimeout(() => {
           setUploadMessage(null);
           onNavigateTab('extract-and-review', res.data.id);

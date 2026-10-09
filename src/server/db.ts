@@ -12,6 +12,17 @@ export interface AuditLogEntry {
   notes: string;
 }
 
+export type GateStatus = 'PASS' | 'WARN' | 'BLOCK' | 'NOT_CONNECTED';
+
+export interface GateCheck {
+  id: number;
+  name: string;
+  status: GateStatus;
+  desc: string;
+  sourceSystem?: string;
+  isSimulated?: boolean;
+}
+
 export interface StoredCertificate {
   certId: string;
   parcelId: string;
@@ -29,6 +40,8 @@ export interface StoredCertificate {
   certHash: string;
   status: 'ISSUED' | 'REVOKED';
   eligibilityNotes: string;
+  isDemonstrationCert?: boolean;
+  sha256Verified?: boolean;
 }
 
 export interface Parcel {
@@ -70,13 +83,13 @@ export interface Parcel {
     fileType: string;
     uploadedAt: string;
     source: string;
+    storedPath?: string;
+    serverFileName?: string;
+    storagePath?: string;
+    isDurableStorage?: boolean;
+    sha256?: string;
   };
-  gates: Array<{
-    id: number;
-    name: string;
-    status: 'PASS' | 'WARN' | 'BLOCK';
-    desc: string;
-  }>;
+  gates: GateCheck[];
   override?: {
     justification: string;
     officerName: string;
@@ -182,9 +195,12 @@ function getDatabase(): DatabaseSchema {
 function saveDatabase(data: DatabaseSchema): void {
   try {
     fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    const tempPath = `${DB_PATH}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempPath, DB_PATH);
   } catch (err) {
     console.error('Error saving database file:', err);
+    throw new Error('DATABASE_WRITE_FAILED: Failed to safely write record to data store.');
   }
 }
 
@@ -193,8 +209,16 @@ export const db = {
   save: saveDatabase,
 
   getParcels: () => getDatabase().parcels,
-  getParcelById: (id: string) =>
-    getDatabase().parcels.find((p) => p.id === id || p.ulpin === id || p.surveyNo.includes(id)),
+  getParcelById: (id: string) => {
+    if (!id || typeof id !== 'string') return undefined;
+    const target = id.trim().toLowerCase();
+    return getDatabase().parcels.find(
+      (p) =>
+        p.id.toLowerCase() === target ||
+        p.ulpin.toLowerCase() === target ||
+        (p.caseNo && p.caseNo.toLowerCase() === target)
+    );
+  },
   updateParcel: (id: string, updates: Partial<Parcel>) => {
     const data = getDatabase();
     const idx = data.parcels.findIndex((p) => p.id === id);
@@ -210,6 +234,18 @@ export const db = {
     data.parcels.unshift(parcel);
     saveDatabase(data);
     return parcel;
+  },
+
+  addOfficerQueueItem: (item: OfficerQueueItem) => {
+    const data = getDatabase();
+    const existing = data.officerQueue.findIndex((q) => q.parcelId === item.parcelId || q.id === item.id);
+    if (existing !== -1) {
+      data.officerQueue[existing] = { ...data.officerQueue[existing], ...item };
+    } else {
+      data.officerQueue.unshift(item);
+    }
+    saveDatabase(data);
+    return item;
   },
 
   getExtraction: () => getDatabase().extraction,
