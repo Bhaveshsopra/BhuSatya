@@ -1,0 +1,6 @@
+{
+  "name": "BhuSatya Land Title Verification & Registry Integrity",
+  "description": "Unified cadastral title verification, automated mutation tracking, Document AI extraction, and e-Court registry synchronization for citizen and government land governance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
